@@ -7,7 +7,7 @@ import {
   RoomProvider,
 } from "@liveblocks/react";
 import { ReactNode } from "react";
-import { Layer } from "~/types";
+import { Layer } from "@/types";
 
 export function Room({
   children,
@@ -17,7 +17,7 @@ export function Room({
   roomId: string;
 }) {
   return (
-    <LiveblocksProvider authEndpoint="/api/liveblocks-auth">
+    <LiveblocksProvider authEndpoint="/api/liveblocks">
       <RoomProvider
         id={roomId}
         initialPresence={{
