@@ -15,8 +15,8 @@ export const env = createEnv({
     NODE_ENV: z
       .enum(["development", "test", "production"])
       .default("development"),
-    // LIVEBLOCKS_PUBLIC_KEY: z.string(),
-    // LIVEBLOCKS_SECRET_KEY: z.string(),
+    LIVEBLOCKS_PUBLIC_KEY: z.string(),
+    LIVEBLOCKS_SECRET_KEY: z.string(),
   },
 
   /**
