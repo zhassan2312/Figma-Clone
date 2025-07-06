@@ -4,8 +4,8 @@ import { Inter } from "next/font/google";
 import { type Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Drawing",
-  description: "Drawing",
+  title: "Figma",
+  description: "Figma",
   icons: [{ rel: "icon", url: "/figma-logo.ico" }],
 };
 
