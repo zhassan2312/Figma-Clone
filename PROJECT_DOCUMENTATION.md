@@ -1,97 +1,613 @@
-# Figma Clone - Project Documentation
+# Figma Clone - Comprehensive Project Documentation
 
-## 🎨 Project Overview
-
-**Figma Clone** is a collaborative design and prototyping web application built with modern web technologies. This project aims to replicate core Figma functionalities including real-time collaboration, design tools, and user management.
-
-### 🚀 Key Features
-- **Real-time Collaboration** - Multiple users can work simultaneously
-- **Design Tools** - Vector graphics, shapes, text, and drawing capabilities
-- **User Authentication** - Secure sign-in/sign-up with NextAuth.js
-- **Room Management** - Create and manage collaborative workspaces
-- **Modern UI** - Beautiful, responsive interface with Tailwind CSS
+## 📋 Table of Contents
+1. [Project Scope](#project-scope)
+2. [Project Structure](#project-structure)
+3. [Application Flow](#application-flow)
+4. [Canvas Operations Flow](#canvas-operations-flow)
+5. [Component Architecture](#component-architecture)
+6. [Technical Implementation](#technical-implementation)
 
 ---
 
-## 🏗️ Tech Stack
+## 🎯 Project Scope
 
-### Frontend
-- **Next.js 15.3.5** - React framework with App Router
-- **React 19.0.0** - UI library with latest features
-- **TypeScript 5** - Type-safe development
-- **Tailwind CSS 4** - Modern utility-first CSS framework
+### Overview
+**Figma Clone** is a collaborative real-time design application that replicates core Figma functionalities. It enables multiple users to work simultaneously on design projects with real-time synchronization, drawing tools, and collaborative features.
 
-### Backend & Database
-- **PostgreSQL** - Primary database (hosted on Neon)
-- **Prisma 6.11.1** - Database ORM and query builder
-- **NextAuth.js 5.0.0-beta** - Authentication solution
+### Core Features
+- **Real-time Collaboration**: Multiple users can work on the same canvas simultaneously
+- **Drawing Tools**: Rectangle, Ellipse, Text, and Pencil drawing tools
+- **User Authentication**: Secure registration and login system
+- **Room Management**: Create and manage collaborative workspaces
+- **Live Cursors**: See other users' cursors and selections in real-time
+- **Layer Management**: Create, select, move, and delete layers
+- **Undo/Redo**: History management for user actions
 
-### Development Tools
-- **ESLint 9** - Code linting and formatting
-- **Prettier** - Code formatting
-- **Turbo** - Fast development server
+### Technical Objectives
+- Build a scalable real-time application using modern web technologies
+- Implement robust authentication and authorization
+- Create an intuitive and responsive user interface
+- Ensure data consistency across multiple clients
+- Maintain high performance with optimistic updates
 
-### Security & Validation
-- **Zod 3.25.74** - Schema validation
-- **bcryptjs 3.0.2** - Password hashing
+### Target Users
+- Designers and design teams
+- Product managers and stakeholders
+- Anyone needing collaborative design tools
 
 ---
 
-## 📁 Project Structure
+## 🏗️ Project Structure
 
+### Directory Overview
 ```
 figma-clone/
-├── prisma/
-│   └── schema.prisma           # Database schema definition
-├── src/
+├── prisma/                     # Database schema and migrations
+│   └── schema.prisma           # Database models definition
+├── public/                     # Static assets
+│   ├── favicon.ico
+│   ├── figma-logo.ico
+│   └── figma-logo.svg
+├── src/                        # Source code
 │   ├── app/                    # Next.js App Router
-│   │   ├── api/auth/
-│   │   │   └── [...nextauth]/
-│   │   │       └── route.ts    # NextAuth API routes
-│   │   ├── layout.tsx          # Root layout component
+│   │   ├── actions/            # Server actions
+│   │   │   ├── auth.ts         # Authentication actions
+│   │   │   └── rooms.ts        # Room management actions
+│   │   ├── api/                # API routes
+│   │   │   ├── auth/           # NextAuth API routes
+│   │   │   └── liveblocks/     # Liveblocks authentication
+│   │   ├── dashboard/          # Dashboard pages
+│   │   │   ├── page.tsx        # Dashboard main page
+│   │   │   └── [id]/           # Dynamic room pages
+│   │   │       └── page.tsx    # Individual room page
+│   │   ├── signin/             # Authentication pages
+│   │   ├── signup/
+│   │   ├── layout.tsx          # Root layout
 │   │   └── page.tsx            # Landing page
+│   ├── components/             # React components
+│   │   ├── canvas/             # Canvas-related components
+│   │   ├── dashboard/          # Dashboard components
+│   │   ├── liveblocks/         # Liveblocks integration
+│   │   ├── sidebars/           # Sidebar components
+│   │   └── toolsbar/           # Toolbar components
+│   ├── hooks/                  # Custom React hooks
 │   ├── server/                 # Server-side code
-│   │   ├── auth/
-│   │   │   ├── config.ts       # NextAuth configuration
-│   │   │   └── index.ts        # Auth exports
-│   │   ├── schemas/
-│   │   │   └── auth.ts         # Zod validation schemas
-│   │   └── db.ts               # Prisma client configuration
-│   ├── styles/
-│   │   └── globals.css         # Global CSS styles
-│   └── env.js                  # Environment variables validation
-├── .env                        # Environment variables
+│   │   ├── auth/               # Authentication configuration
+│   │   └── db.ts               # Database connection
+│   ├── styles/                 # CSS styles
+│   ├── types.ts                # TypeScript type definitions
+│   ├── utils.ts                # Utility functions
+│   └── env.js                  # Environment validation
+├── eslint.config.mjs           # ESLint configuration
+├── next.config.ts              # Next.js configuration
 ├── package.json                # Dependencies and scripts
 ├── tsconfig.json               # TypeScript configuration
-├── next.config.ts              # Next.js configuration
-├── postcss.config.mjs          # PostCSS configuration
-└── eslint.config.mjs           # ESLint configuration
+└── tailwind.config.ts          # Tailwind CSS configuration
 ```
+
+### Core Technologies
+- **Frontend**: Next.js 15, React 19, TypeScript, Tailwind CSS
+- **Backend**: Next.js API routes, Prisma ORM, PostgreSQL
+- **Authentication**: NextAuth.js with credentials provider
+- **Real-time**: Liveblocks for collaborative features
+- **Development**: ESLint, Prettier, Turbo
 
 ---
 
-## 🗄️ Database Schema
+## 🔄 Application Flow
 
-### Core Models
+### 1. User Authentication Flow
+```
+Landing Page → Sign Up/Sign In → Authentication → Dashboard
+```
 
-#### **User Model**
-```prisma
-model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String    @unique
-  emailVerified DateTime?
-  image         String?
-  password      String
-  accounts      Account[]
-  sessions      Session[]
-  posts         Post[]
-  ownedRooms    Room[]    @relation("RoomOwner")
-  roomInvites   RoomInvite[]
+**Step-by-step process:**
+1. **Landing Page** (`/`)
+   - User sees the welcome page with project overview
+   - Options to sign in or sign up
+
+2. **Registration** (`/signup`)
+   - User enters email and password
+   - Server validates input using Zod schemas
+   - Password is hashed with bcryptjs
+   - User record created in database
+   - Automatic redirect to dashboard
+
+3. **Login** (`/signin`)
+   - User enters credentials
+   - NextAuth.js validates against database
+   - JWT session created
+   - Redirect to dashboard
+
+4. **Dashboard** (`/dashboard`)
+   - User sees their rooms and shared rooms
+   - Can create new rooms or join existing ones
+
+### 2. Room Creation and Access Flow
+```
+Dashboard → Create Room → Room Canvas → Real-time Collaboration
+```
+
+**Step-by-step process:**
+1. **Room Creation**
+   - User clicks "Create Room" on dashboard
+   - Server action creates new room in database
+   - User becomes room owner
+   - Automatic redirect to room canvas
+
+2. **Room Access**
+   - User clicks on existing room
+   - Server validates access permissions
+   - Room data loaded from database
+   - Liveblocks room initialized
+   - Canvas rendered with room data
+
+3. **Collaboration Setup**
+   - Liveblocks authenticates user
+   - User joins real-time room
+   - Initial presence and storage loaded
+   - Canvas ready for collaboration
+
+### 3. Room Sharing Flow
+```
+Room → Share Button → Invite Users → Real-time Access
+```
+
+**Step-by-step process:**
+1. **Invitation Process**
+   - Room owner enters email to invite
+   - System checks if user exists
+   - Room invitation created in database
+   - Invited user gains access to room
+
+2. **Access Verification**
+   - System checks if user is owner or invited
+   - Access granted or denied based on permissions
+   - Real-time room access configured
+
+---
+
+## 🎨 Canvas Operations Flow
+
+### 1. Tool Selection Flow
+```
+Toolbar → Tool Selection → Canvas Mode Change → Ready for Drawing
+```
+
+**Implementation:**
+```typescript
+// Tool selection changes canvas state
+const [canvasState, setState] = useState<CanvasState>({
+  mode: CanvasMode.None,
+});
+
+// When tool is selected
+setState({
+  mode: CanvasMode.Inserting,
+  layerType: LayerType.Rectangle, // or Ellipse, Text
+});
+```
+
+### 2. Shape Creation Flow
+```
+Tool Selected → Mouse Down → Mouse Move → Mouse Up → Layer Created
+```
+
+**Step-by-step process:**
+1. **Tool Selection**
+   - User selects rectangle, ellipse, or text tool
+   - Canvas mode changes to `CanvasMode.Inserting`
+   - Canvas ready to receive input
+
+2. **Mouse Down (onPointerDown)**
+   - Captures starting point
+   - Records initial coordinates
+   - Prepares for shape creation
+
+3. **Mouse Move (onPointerMove)**
+   - Updates shape dimensions in real-time
+   - Shows preview of shape being drawn
+   - Calculates width and height from drag distance
+
+4. **Mouse Up (onPointerUp)**
+   - Finalizes shape creation
+   - Creates layer with final dimensions
+   - Adds layer to Liveblocks storage
+   - Updates layer IDs list
+   - Resets canvas mode to `CanvasMode.None`
+
+**Code Implementation:**
+```typescript
+const insertLayer = useMutation(
+  ({ storage, setMyPresence }, layerType: LayerType, position: Point) => {
+    const liveLayers = storage.get("layers");
+    const liveLayerIds = storage.get("layerIds");
+    const layerId = nanoid();
+    
+    // Create layer based on type
+    let layer = new LiveObject({
+      type: layerType,
+      x: position.x,
+      y: position.y,
+      height: 100,
+      width: 100,
+      fill: { r: 217, g: 217, b: 217 },
+      stroke: { r: 217, g: 217, b: 217 },
+      opacity: 100,
+    });
+    
+    // Add to storage
+    liveLayerIds.push(layerId);
+    liveLayers.set(layerId, layer);
+    
+    // Update selection
+    setMyPresence({ selection: [layerId] }, { addToHistory: true });
+  },
+  [history]
+);
+```
+
+### 3. Selection Flow
+```
+Click on Layer → Selection Highlighted → Selection Tools Available
+```
+
+**Step-by-step process:**
+1. **Layer Click Detection**
+   - Ray casting to find clicked layer
+   - Check all layers for intersection with click point
+   - Priority given to top-most layers
+
+2. **Selection Update**
+   - Update user presence with selected layer ID
+   - Broadcast selection to other users
+   - Show selection box around selected layer
+
+3. **Selection Tools**
+   - Resize handles appear on selection
+   - Delete key becomes active
+   - Color picker becomes available
+
+### 4. Pencil Drawing Flow
+```
+Pencil Tool → Mouse Down → Path Recording → Mouse Up → Path Layer Created
+```
+
+**Step-by-step process:**
+1. **Pencil Mode Activation**
+   - Canvas mode changes to `CanvasMode.Pencil`
+   - Ready to record path points
+
+2. **Path Recording**
+   - Records mouse/touch coordinates continuously
+   - Includes pressure data for variable line width
+   - Stores points in real-time array
+
+3. **Path Completion**
+   - Converts recorded points to SVG path
+   - Creates PathLayer with path data
+   - Adds to Liveblocks storage
+
+**Code Implementation:**
+```typescript
+const insertPath = useMutation(
+  ({ storage, setMyPresence }) => {
+    const liveLayers = storage.get("layers");
+    const liveLayerIds = storage.get("layerIds");
+    const layerId = nanoid();
+    
+    if (pencilDraft && pencilDraft.length > 0) {
+      const path = penPointsToPathPayer(pencilDraft, penColor);
+      const layer = new LiveObject(path);
+      
+      liveLayerIds.push(layerId);
+      liveLayers.set(layerId, layer);
+      setMyPresence({ pencilDraft: null });
+    }
+  },
+  [pencilDraft, penColor]
+);
+```
+
+### 5. Real-time Collaboration Flow
+```
+User Action → Liveblocks Mutation → Broadcast to All Users → UI Update
+```
+
+**Step-by-step process:**
+1. **Local Action**
+   - User performs action (draw, move, select)
+   - Local UI updates optimistically
+   - Action queued for broadcast
+
+2. **Liveblocks Synchronization**
+   - Mutation sent to Liveblocks servers
+   - Conflict resolution applied
+   - Consistent state maintained
+
+3. **Broadcast to Collaborators**
+   - All connected users receive update
+   - Remote UI updates automatically
+   - Cursors and selections synchronized
+
+---
+
+## 🧩 Component Architecture
+
+### 1. Canvas Component (`src/components/canvas/Canvas.tsx`)
+
+**Purpose**: Main drawing canvas that handles all user interactions and rendering.
+
+**Key Responsibilities:**
+- Renders all layers and visual elements
+- Handles mouse/touch events for drawing and selection
+- Manages canvas state (current tool, selections, camera)
+- Integrates with Liveblocks for real-time collaboration
+
+**Key Code Sections:**
+
+```typescript
+export default function Canvas({
+  roomName,
+  roomId,
+  othersWithAccessToRoom,
+}: {
+  roomName: string;
+  roomId: string;
+  othersWithAccessToRoom: User[];
+}) {
+  // Storage loading check - prevents mutations before storage is ready
+  const roomColor = useStorage((root) => root.roomColor);
+  const layerIds = useStorage((root) => root.layerIds);
+  
+  if (roomColor === null || layerIds === null) {
+    return <LoadingScreen />;
+  }
+
+  // Core state management
+  const [canvasState, setState] = useState<CanvasState>({
+    mode: CanvasMode.None,
+  });
+  const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
+
+  // Liveblocks hooks for real-time features
+  const pencilDraft = useSelf((me) => me.presence.pencilDraft);
+  const deleteLayers = useDeleteLayers();
+  const history = useHistory();
+  const canUndo = useCanUndo();
+  const canRedo = useCanRedo();
+```
+
+**Event Handlers:**
+- `onPointerDown`: Initiates drawing/selection
+- `onPointerMove`: Updates drawing/selection in progress
+- `onPointerUp`: Completes drawing/selection action
+- `onWheel`: Handles zoom functionality
+
+### 2. Room Component (`src/components/liveblocks/Room.tsx`)
+
+**Purpose**: Liveblocks integration wrapper that provides real-time collaboration context.
+
+**Key Responsibilities:**
+- Initializes Liveblocks provider and room
+- Sets up authentication endpoint
+- Defines initial presence and storage state
+- Provides loading fallback UI
+
+**Code Implementation:**
+```typescript
+export function Room({ children, roomId }: { children: ReactNode; roomId: string }) {
+  return (
+    <LiveblocksProvider authEndpoint="/api/liveblocks">
+      <RoomProvider
+        id={roomId}
+        initialPresence={{
+          selection: [],      // Currently selected layers
+          cursor: null,       // Cursor position
+          penColor: null,     // Current pen color
+          pencilDraft: null,  // Current pencil drawing
+        }}
+        initialStorage={{
+          roomColor: { r: 30, g: 30, b: 30 },           // Room background
+          layers: new LiveMap<string, LiveObject<Layer>>(), // All layers
+          layerIds: new LiveList([]),                    // Layer order
+        }}
+      >
+        <ClientSideSuspense fallback={<LoadingScreen />}>
+          {children}
+        </ClientSideSuspense>
+      </RoomProvider>
+    </LiveblocksProvider>
+  );
 }
 ```
 
-#### **Room Model** (Collaboration Workspaces)
+### 3. ToolsBar Component (`src/components/toolsbar/ToolsBar.tsx`)
+
+**Purpose**: Provides drawing tools and canvas controls.
+
+**Key Responsibilities:**
+- Tool selection (Rectangle, Ellipse, Text, Pencil)
+- Undo/Redo functionality
+- Zoom controls
+- Selection tools
+
+**Tool Implementation Pattern:**
+```typescript
+// Each tool button follows this pattern
+<IconButton
+  onClick={() => setState({ mode: CanvasMode.Inserting, layerType: LayerType.Rectangle })}
+  isActive={canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Rectangle}
+  icon={RectangleIcon}
+/>
+```
+
+### 4. LayerComponent (`src/components/canvas/LayerComponent.tsx`)
+
+**Purpose**: Renders individual layers based on their type.
+
+**Key Responsibilities:**
+- Renders different layer types (Rectangle, Ellipse, Text, Path)
+- Handles layer-specific styling and properties
+- Manages layer selection visual feedback
+
+**Type-specific Rendering:**
+```typescript
+export default function LayerComponent({
+  id,
+  layer,
+  onPointerDown,
+  selectionColor,
+}: LayerComponentProps) {
+  switch (layer.type) {
+    case LayerType.Rectangle:
+      return <Rectangle id={id} layer={layer} onPointerDown={onPointerDown} />;
+    case LayerType.Ellipse:
+      return <Ellipse id={id} layer={layer} onPointerDown={onPointerDown} />;
+    case LayerType.Text:
+      return <Text id={id} layer={layer} onPointerDown={onPointerDown} />;
+    case LayerType.Path:
+      return <Path id={id} layer={layer} onPointerDown={onPointerDown} />;
+    default:
+      console.warn("Unknown layer type");
+      return null;
+  }
+}
+```
+
+### 5. SelectionBox Component (`src/components/canvas/SelectionBox.tsx`)
+
+**Purpose**: Provides visual feedback and resize handles for selected layers.
+
+**Key Responsibilities:**
+- Shows selection bounds around selected layers
+- Provides resize handles for layer manipulation
+- Handles drag operations for moving layers
+
+**Selection Bounds Calculation:**
+```typescript
+const bounds = useSelectionBounds(); // Custom hook to calculate selection area
+
+if (!bounds) return null;
+
+return (
+  <rect
+    className="fill-transparent stroke-blue-500 stroke-1 pointer-events-none"
+    style={{
+      transform: `translate(${bounds.x}px, ${bounds.y}px)`,
+    }}
+    x={0}
+    y={0}
+    width={bounds.width}
+    height={bounds.height}
+  />
+);
+```
+
+### 6. Sidebars Component (`src/components/sidebars/Sidebars.tsx`)
+
+**Purpose**: Provides layer properties and color picker controls.
+
+**Key Responsibilities:**
+- Color picker for fill and stroke
+- Layer opacity controls
+- Layer management (rename, delete)
+- User access and sharing controls
+
+### 7. Dashboard Components
+
+#### RoomsView (`src/components/dashboard/RoomsView.tsx`)
+**Purpose**: Displays user's rooms and shared rooms in grid layout.
+
+#### CreateRoom (`src/components/dashboard/CreateRoom.tsx`)
+**Purpose**: Handles new room creation with server actions.
+
+#### ConfirmationModal (`src/components/dashboard/ConfirmationModal.tsx`)
+**Purpose**: Provides confirmation dialogs for destructive actions.
+
+### 8. Authentication Components
+
+**Purpose**: Handle user registration and login flows.
+
+**Key Features:**
+- Form validation with Zod schemas
+- Password strength requirements
+- Error handling and user feedback
+- Automatic redirection after authentication
+
+---
+
+## 🔧 Technical Implementation
+
+### 1. Real-time Collaboration (Liveblocks)
+
+**Architecture:**
+```typescript
+// Storage Structure
+interface Storage {
+  roomColor: Color;                           // Room background color
+  layers: LiveMap<string, LiveObject<Layer>>; // All layers in the room
+  layerIds: LiveList<string>;                 // Layer rendering order
+}
+
+// Presence Structure
+interface Presence {
+  selection: string[];                        // Selected layer IDs
+  cursor: Point | null;                       // Cursor position
+  penColor: Color | null;                     // Current pen color
+  pencilDraft: [x: number, y: number, pressure: number][] | null; // Drawing path
+}
+```
+
+**Mutation Pattern:**
+```typescript
+const mutationExample = useMutation(
+  ({ storage, setMyPresence }, ...args) => {
+    // Access shared storage
+    const layers = storage.get("layers");
+    const layerIds = storage.get("layerIds");
+    
+    // Modify storage
+    layers.set(layerId, newLayer);
+    layerIds.push(layerId);
+    
+    // Update presence
+    setMyPresence({ selection: [layerId] }, { addToHistory: true });
+  },
+  [dependencies]
+);
+```
+
+### 2. State Management
+
+**Canvas State Types:**
+```typescript
+export enum CanvasMode {
+  None,           // Default state
+  Pressing,       // Mouse pressed but not moving
+  SelectionNet,   // Multi-selection with drag
+  Translating,    // Moving selected layers
+  Inserting,      // Drawing new shape
+  Resizing,       // Resizing selected layer
+  Pencil,         // Freehand drawing
+  RightClick,     // Context menu
+}
+
+export type CanvasState = 
+  | { mode: CanvasMode.None }
+  | { mode: CanvasMode.Pressing; origin: Point }
+  | { mode: CanvasMode.SelectionNet; origin: Point; current?: Point }
+  | { mode: CanvasMode.Translating; current: Point }
+  | { mode: CanvasMode.Inserting; layerType: LayerType }
+  | { mode: CanvasMode.Resizing; initialBounds: XYWH; corner: Side }
+  | { mode: CanvasMode.Pencil }
+  | { mode: CanvasMode.RightClick; current: Point };
+```
+
+### 3. Database Integration
+
+**Prisma Schema:**
 ```prisma
 model Room {
   id          String       @id @default(cuid())
@@ -101,238 +617,153 @@ model Room {
   title       String       @default("Untitled")
   roomInvites RoomInvite[]
 }
+
+model RoomInvite {
+  id     String @id @default(cuid())
+  room   Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  roomId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+
+  @@unique([roomId, userId])
+}
 ```
 
-#### **Authentication Models**
-- **Account** - OAuth provider accounts
-- **Session** - User sessions
-- **VerificationToken** - Email verification
+**Server Actions:**
+```typescript
+export async function createRoom() {
+  const session = await auth();
+  if (!session?.user.id) throw new Error("No user id found.");
 
----
+  const room = await db.room.create({
+    data: {
+      owner: { connect: { id: session.user.id } },
+    },
+    select: { id: true },
+  });
 
-## 🔧 Environment Configuration
-
-### Required Environment Variables
-
-```env
-# Authentication
-AUTH_SECRET="your-auth-secret"
-
-# Database
-DATABASE_URL="postgresql://user:password@host:port/database"
-DATABASE_URL_UNPOOLED="postgresql://user:password@host:port/database"
-
-# Liveblocks (Real-time Collaboration)
-LIVEBLOCKS_PUBLIC_KEY="your-public-key"
-LIVEBLOCKS_SECRET_KEY="your-secret-key"
-
-# PostgreSQL Connection Details
-PGHOST="your-host"
-PGUSER="your-username"
-PGDATABASE="your-database"
-PGPASSWORD="your-password"
+  redirect("/dashboard/" + room.id);
+}
 ```
+
+### 4. Authentication System
+
+**NextAuth Configuration:**
+```typescript
+export const authConfig = {
+  providers: [
+    Credentials({
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const validatedFields = LoginSchema.safeParse(credentials);
+        if (!validatedFields.success) return null;
+
+        const { email, password } = validatedFields.data;
+        const user = await getUserByEmail(email);
+        if (!user || !user.password) return null;
+
+        const passwordsMatch = await bcrypt.compare(password, user.password);
+        if (passwordsMatch) return user;
+        return null;
+      },
+    }),
+  ],
+  // ... additional configuration
+};
+```
+
+### 5. Utility Functions
+
+**Canvas Utilities:**
+```typescript
+// Convert pointer event to canvas coordinates
+export function pointerEventToCanvasPoint(
+  e: React.PointerEvent,
+  camera: Camera,
+): Point {
+  return {
+    x: Math.round(e.clientX) - camera.x,
+    y: Math.round(e.clientY) - camera.y,
+  };
+}
+
+// Find layers intersecting with selection rectangle
+export function findIntersectionLayersWithRectangle(
+  layerIds: readonly string[],
+  layers: ReadonlyMap<string, Layer>,
+  a: Point,
+  b: Point,
+): string[] {
+  const rect = {
+    x: Math.min(a.x, b.x),
+    y: Math.min(a.y, b.y),
+    width: Math.abs(a.x - b.x),
+    height: Math.abs(a.y - b.y),
+  };
+
+  return layerIds.filter((layerId) => {
+    const layer = layers.get(layerId);
+    if (!layer) return false;
+    
+    return (
+      rect.x < layer.x + layer.width &&
+      rect.x + rect.width > layer.x &&
+      rect.y < layer.y + layer.height &&
+      rect.y + rect.height > layer.y
+    );
+  });
+}
+```
+
+### 6. Performance Optimizations
+
+**Loading States:**
+- Storage loading checks prevent premature mutations
+- Suspense boundaries for proper loading states
+- Optimistic updates for smooth user experience
+
+**Memoization:**
+- React.memo for expensive component renders
+- useMemo for complex calculations
+- useCallback for stable function references
+
+**Efficient Updates:**
+- Liveblocks conflict resolution for concurrent edits
+- Minimal re-renders through selective subscriptions
+- Debounced operations for high-frequency events
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- npm or yarn
+- Node.js 18+
 - PostgreSQL database
+- Liveblocks account (for real-time features)
 
-### Installation
+### Environment Setup
+```env
+# Authentication
+AUTH_SECRET="your-secret-key"
 
-1. **Clone the repository**
-   ```bash
-   git clone <your-repo-url>
-   cd figma-clone
-   ```
+# Database
+DATABASE_URL="postgresql://user:password@host:port/database"
 
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
+# Liveblocks
+LIVEBLOCKS_PUBLIC_KEY="pk_live_..."
+LIVEBLOCKS_SECRET_KEY="sk_live_..."
+```
 
-3. **Set up environment variables**
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
-
-4. **Set up the database**
-   ```bash
-   npm run db:push
-   npm run db:generate
-   ```
-
-5. **Start development server**
-   ```bash
-   npm run dev
-   ```
-
-6. **Access the application**
-   ```
-   http://localhost:3000
-   ```
+### Installation Steps
+1. Clone repository and install dependencies
+2. Set up environment variables
+3. Run database migrations: `npm run db:push`
+4. Start development server: `npm run dev`
+5. Access application at `http://localhost:3000`
 
 ---
 
-## 📝 Available Scripts
-
-### Development
-- `npm run dev` - Start development server with Turbo
-- `npm run build` - Build for production
-- `npm run start` - Start production server
-- `npm run preview` - Build and start production server
-
-### Database Management
-- `npm run db:push` - Push schema changes to database
-- `npm run db:generate` - Generate Prisma client
-- `npm run db:studio` - Open Prisma Studio (database GUI)
-- `npm run db:migrate` - Deploy migrations
-
-### Code Quality
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix ESLint issues
-- `npm run typecheck` - Run TypeScript type checking
-- `npm run check` - Run linting and type checking
-- `npm run format:write` - Format code with Prettier
-- `npm run format:check` - Check code formatting
-
----
-
-## 🔐 Authentication Flow
-
-### NextAuth.js Configuration
-- **Provider**: Credentials (email/password)
-- **Session Strategy**: JWT
-- **Database Adapter**: Prisma
-- **Password Hashing**: bcryptjs
-
-### Authentication Features
-- User registration with email/password
-- Secure password hashing
-- JWT-based sessions
-- Database session persistence
-- Type-safe session management
-
----
-
-## 🎨 Frontend Architecture
-
-### App Router Structure
-- **Layout**: Root layout with Inter font and global styles
-- **Pages**: File-based routing with Next.js App Router
-- **Components**: Reusable React components
-- **Styling**: Tailwind CSS with utility classes
-
-### Key Pages
-- **Landing Page** (`/`) - Hero section with features and CTA
-- **Authentication** - Sign in/sign up forms
-- **Dashboard** - User workspace and projects
-- **Collaboration Rooms** - Real-time design workspaces
-
----
-
-## 🔄 Real-time Collaboration
-
-### Liveblocks Integration
-- Real-time cursors and presence
-- Collaborative editing
-- Room-based collaboration
-- Conflict resolution
-
-### Expected Features
-- Live cursor tracking
-- Real-time shape manipulation
-- Collaborative drawing
-- User presence indicators
-- Room management
-
----
-
-## 🛡️ Security Features
-
-### Data Validation
-- **Zod schemas** for runtime validation
-- **TypeScript** for compile-time safety
-- **Input sanitization** for user data
-
-### Authentication Security
-- **Password hashing** with bcryptjs
-- **Secure sessions** with NextAuth.js
-- **Environment variable validation**
-- **CSRF protection** built-in
-
----
-
-## 🚀 Deployment Considerations
-
-### Database
-- **Neon PostgreSQL** - Serverless PostgreSQL
-- **Connection pooling** configured
-- **Environment-specific URLs**
-
-### Hosting Recommendations
-- **Vercel** - Optimized for Next.js
-- **Railway** - Database and app hosting
-- **Netlify** - Static site deployment
-
----
-
-## 📈 Future Enhancements
-
-### Planned Features
-- [ ] Advanced drawing tools (pen, bezier curves)
-- [ ] Layer management system
-- [ ] Export functionality (PNG, SVG, PDF)
-- [ ] Team collaboration features
-- [ ] Plugin system
-- [ ] Version history
-- [ ] Comments and feedback system
-- [ ] Mobile responsive design tools
-
-### Technical Improvements
-- [ ] Performance optimization
-- [ ] Offline capability
-- [ ] Advanced caching strategies
-- [ ] Microservices architecture
-- [ ] Advanced real-time features
-
----
-
-## 🤝 Contributing
-
-### Development Workflow
-1. Fork the repository
-2. Create a feature branch
-3. Make changes with proper typing
-4. Run tests and linting
-5. Submit a pull request
-
-### Code Standards
-- **TypeScript** for all new code
-- **ESLint** configuration compliance
-- **Prettier** formatting
-- **Conventional commits** for git messages
-
----
-
-## 📞 Support & Documentation
-
-### Useful Resources
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Prisma Documentation](https://www.prisma.io/docs)
-- [NextAuth.js Documentation](https://next-auth.js.org)
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-
-### Project Status
-- **Version**: 0.1.0
-- **Status**: In Development
-- **License**: Private
-
----
-
-*Generated on ${new Date().toLocaleDateString()} by Project Analysis Tool*
+*This documentation provides a comprehensive overview of the Figma Clone project architecture, implementation details, and operational flows. Each component and system is designed to work together to create a seamless collaborative design experience.*

@@ -67,20 +67,6 @@ export default function Canvas({
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
 
-  // Check if storage is loaded before allowing mutations
-  if (roomColor === null || layerIds === null) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center gap-2">
-        <img
-          src="/figma-logo.svg"
-          alt="Figma logo"
-          className="h-[50px] w-[50px] animate-bounce"
-        />
-        <h1 className="text-sm font-normal">Loading canvas...</h1>
-      </div>
-    );
-  }
-
   const selectAllLayers = useMutation(
     ({ setMyPresence }) => {
       if (layerIds) {
@@ -476,6 +462,20 @@ export default function Canvas({
     },
     [canvasState, setState, insertLayer, unselectLayers, history],
   );
+
+  // Check if storage is loaded before rendering canvas
+  if (roomColor === null || layerIds === null) {
+    return (
+      <div className="flex h-screen flex-col items-center justify-center gap-2">
+        <img
+          src="/figma-logo.svg"
+          alt="Figma logo"
+          className="h-[50px] w-[50px] animate-bounce"
+        />
+        <h1 className="text-sm font-normal">Loading canvas...</h1>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen w-full">
