@@ -18,23 +18,23 @@ export default function Page() {
         <form action={formAction} className="space-y-4">
           <div className="relative h-fit">
             <input
-              className="w-full rounded-md border border-gray-300 px-3 pb-1 pt-7 text-sm focus:border-black focus:outline-none"
+              className="w-full text-gray-800 rounded-md border border-gray-300 px-3 pb-1 pt-7 text-sm focus:border-black focus:outline-none"
               type="email"
               name="email"
               required
             />
-            <label className="absolute left-3 top-2 text-[12px]">EMAIL</label>
+            <label className="absolute text-gray-400 left-3 top-2 text-[12px]">EMAIL</label>
           </div>
 
           <div className="relative h-fit">
             <input
-              className="w-full rounded-md border border-gray-300 px-3 pb-1 pt-7 text-sm focus:border-black focus:outline-none"
+              className="w-full text-gray-800 rounded-md border border-gray-300 px-3 pb-1 pt-7 text-sm focus:border-black focus:outline-none"
               type="password"
               name="password"
               required
               minLength={8}
             />
-            <label className="absolute left-3 top-2 text-[12px]">
+            <label className="absolute text-gray-400 left-3 top-2 text-[12px]">
               PASSWORD
             </label>
           </div>
