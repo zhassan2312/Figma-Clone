@@ -38,6 +38,7 @@ import ToolsBar from "../toolsbar/ToolsBar";
 import Path from "./Path";
 import SelectionBox from "./SelectionBox";
 import useDeleteLayers from "@/hooks/useDeleteLayers";
+import useKeyboardShortcuts from "@/hooks/useKeyboardShortcuts";
 import SelectionTools from "./SelectionTools";
 import Sidebars from "../sidebars/Sidebars";
 import MultiplayerGuides from "./MultiplayerGuides";
@@ -76,43 +77,12 @@ export default function Canvas({
     [layerIds],
   );
 
-  useEffect(() => {
-    function onKeyDown(e: KeyboardEvent) {
-      const activeElement = document.activeElement;
-      const isInputField =
-        activeElement &&
-        (activeElement.tagName === "INPUT" ||
-          activeElement.tagName === "TEXTAREA");
-
-      if (isInputField) return;
-
-      switch (e.key) {
-        case "Backspace":
-          deleteLayers();
-          break;
-        case "z":
-          if (e.ctrlKey || e.metaKey) {
-            if (e.shiftKey) {
-              history.redo();
-            } else {
-              history.undo();
-            }
-          }
-          break;
-        case "a":
-          if (e.ctrlKey || e.metaKey) {
-            selectAllLayers();
-            break;
-          }
-      }
-    }
-
-    document.addEventListener("keydown", onKeyDown);
-
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-    };
-  }, [deleteLayers]);
+  // Initialize keyboard shortcuts
+  const { copyLayers, cutLayers, pasteLayers, duplicateLayers } = useKeyboardShortcuts({
+    history,
+    selectAllLayers,
+    camera,
+  });
 
   const onLayerPointerDown = useMutation(
     ({ self, setMyPresence }, e: React.PointerEvent, layerId: string) => {
@@ -125,13 +95,25 @@ export default function Canvas({
 
       history.pause();
       e.stopPropagation();
-      if (!self.presence.selection.includes(layerId)) {
-        setMyPresence(
-          {
-            selection: [layerId],
-          },
-          { addToHistory: true },
-        );
+      
+      const currentSelection = self.presence.selection;
+      const isShiftHeld = e.shiftKey;
+      
+      if (isShiftHeld) {
+        // Shift+click: Add/remove from selection
+        if (currentSelection.includes(layerId)) {
+          // Remove from selection if already selected
+          const newSelection = currentSelection.filter(id => id !== layerId);
+          setMyPresence({ selection: newSelection }, { addToHistory: true });
+        } else {
+          // Add to selection
+          setMyPresence({ selection: [...currentSelection, layerId] }, { addToHistory: true });
+        }
+      } else {
+        // Normal click: Select only this layer (unless already in multi-selection)
+        if (!currentSelection.includes(layerId)) {
+          setMyPresence({ selection: [layerId] }, { addToHistory: true });
+        }
       }
 
       if (e.nativeEvent.button === 2) {
@@ -361,19 +343,28 @@ export default function Canvas({
         return;
       }
 
-      setState({ origin: point, mode: CanvasMode.Pressing });
+      setState({ 
+        origin: point, 
+        mode: CanvasMode.Pressing, 
+        isShiftHeld: e.shiftKey 
+      });
     },
     [camera, canvasState.mode, setState, startDrawing],
   );
 
-  const startMultiSelection = useCallback((current: Point, origin: Point) => {
+  const startMultiSelection = useCallback((current: Point, origin: Point, isShiftHeld = false) => {
     if (Math.abs(current.x - origin.x) + Math.abs(current.y - origin.y) > 5) {
-      setState({ mode: CanvasMode.SelectionNet, origin, current });
+      setState({ 
+        mode: CanvasMode.SelectionNet, 
+        origin, 
+        current, 
+        isShiftHeld 
+      });
     }
   }, []);
 
   const updateSelectionNet = useMutation(
-    ({ storage, setMyPresence }, current: Point, origin: Point) => {
+    ({ storage, setMyPresence, self }, current: Point, origin: Point, isShiftHeld = false) => {
       if (layerIds) {
         const layers = storage.get("layers").toImmutable();
         setState({
@@ -387,7 +378,16 @@ export default function Canvas({
           origin,
           current,
         );
-        setMyPresence({ selection: ids });
+        
+        if (isShiftHeld) {
+          // Add to existing selection
+          const currentSelection = self.presence.selection;
+          const newSelection = [...new Set([...currentSelection, ...ids])];
+          setMyPresence({ selection: newSelection });
+        } else {
+          // Replace selection
+          setMyPresence({ selection: ids });
+        }
       }
     },
     [layerIds],
@@ -398,9 +398,9 @@ export default function Canvas({
       const point = pointerEventToCanvasPoint(e, camera);
 
       if (canvasState.mode === CanvasMode.Pressing) {
-        startMultiSelection(point, canvasState.origin);
+        startMultiSelection(point, canvasState.origin, canvasState.isShiftHeld);
       } else if (canvasState.mode === CanvasMode.SelectionNet) {
-        updateSelectionNet(point, canvasState.origin);
+        updateSelectionNet(point, canvasState.origin, canvasState.isShiftHeld);
       } else if (
         canvasState.mode === CanvasMode.Dragging &&
         canvasState.origin !== null

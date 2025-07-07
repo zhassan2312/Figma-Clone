@@ -99,6 +99,7 @@ export type CanvasState =
       mode: CanvasMode.SelectionNet;
       origin: Point;
       current?: Point;
+      isShiftHeld?: boolean;
     }
   | {
       mode: CanvasMode.Dragging;
@@ -123,6 +124,7 @@ export type CanvasState =
   | {
       mode: CanvasMode.Pressing;
       origin: Point;
+      isShiftHeld?: boolean;
     };
 
 export enum CanvasMode {

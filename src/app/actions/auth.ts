@@ -24,13 +24,15 @@ export async function authenticate(
     if (error instanceof AuthError) {
       switch (error.type) {
         case "CredentialsSignin":
-          return "Invalid credentials";
+          return "Invalid credentials or email not verified";
         default:
           return "Something went wrong";
       }
     }
     throw error;
   }
+  // If successful, Next.js will handle the redirect based on our root page logic
+  redirect("/");
 }
 
 export async function register(
@@ -155,5 +157,22 @@ export async function resendVerificationCode(email: string) {
    return "success";
   } catch (error) {
     return "Failed to resend verification code";
+  }
+}
+
+export async function checkUserVerificationStatus(email: string) {
+  try {
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { isEmailVerified: true, email: true },
+    });
+
+    if (!user) {
+      return { exists: false, verified: false };
+    }
+
+    return { exists: true, verified: user.isEmailVerified };
+  } catch (error) {
+    return { exists: false, verified: false };
   }
 }

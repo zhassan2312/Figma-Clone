@@ -22,6 +22,9 @@ export const env = createEnv({
     SERVICE: z
       .enum(["gmail", "sendgrid", "mailgun", "smtp"])
       .default("gmail"),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
   },
 
   /**
@@ -46,6 +49,7 @@ export const env = createEnv({
     USER_EMAIL: process.env.USER_EMAIL,
     USER_PASSWORD: process.env.USER_PASSWORD,
     SERVICE: process.env.SERVICE,
+    NODE_ENV: process.env.NODE_ENV,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
