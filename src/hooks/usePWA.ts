@@ -17,11 +17,6 @@ export default function usePWA() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [updateAvailable, setUpdateAvailable] = useState(false);
   useEffect(() => {
-    // Skip PWA functionality in development mode
-    if (process.env.NODE_ENV === "development") {
-      return;
-    }
-
     // Check if app is installed
     const checkIfInstalled = () => {
       return window.matchMedia("(display-mode: standalone)").matches ||
@@ -47,8 +42,8 @@ export default function usePWA() {
       setDeferredPrompt(null);
     };
 
-    // Service Worker registration and update handling
-    if ("serviceWorker" in navigator) {
+    // Service Worker registration (only in production)
+    if (process.env.NODE_ENV === "production" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("/sw.js")
         .then((registration) => {
           console.log("SW registered: ", registration);
@@ -70,6 +65,7 @@ export default function usePWA() {
         });
     }
 
+    // Install prompt events work in both dev and production
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 

@@ -1,12 +1,24 @@
 import type { NextConfig } from "next";
 
-const withPWA = require("next-pwa")({
-  dest: "public",
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === "development",
-  // Only include runtime caching in production
-  ...(process.env.NODE_ENV === "production" && {
+const nextConfig: NextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true, // Temporarily ignore eslint errors during build
+  },
+  // Turbopack configuration (now stable)
+  turbopack: {
+    // Configure turbopack if needed
+  },
+  /* config options here */
+};
+
+// Create final config - only apply PWA in production
+let finalConfig = nextConfig;
+
+if (process.env.NODE_ENV === "production") {
+  const withPWA = require("next-pwa")({
+    dest: "public",
+    register: true,
+    skipWaiting: true,
     runtimeCaching: [
       {
         urlPattern: /^https?.*/,
@@ -19,17 +31,11 @@ const withPWA = require("next-pwa")({
         },
       },
     ],
-  }),
-  buildExcludes: [/middleware-manifest.json$/],
-  // Exclude problematic files from caching
-  publicExcludes: ["!noprecache/**/*"],
-});
+    buildExcludes: [/middleware-manifest.json$/],
+    publicExcludes: ["!noprecache/**/*"],
+  });
+  
+  finalConfig = withPWA(nextConfig);
+}
 
-const nextConfig: NextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true, // Temporarily ignore eslint errors during build
-  },
-  /* config options here */
-};
-
-export default withPWA(nextConfig);
+export default finalConfig;
