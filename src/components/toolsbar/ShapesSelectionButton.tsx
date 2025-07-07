@@ -1,9 +1,19 @@
 import { useState, useRef, useEffect } from "react";
-import { BiPointer } from "react-icons/bi";
-import { RiHand } from "react-icons/ri";
 import { CanvasMode, CanvasState, LayerType } from "~/types";
 import IconButton from "./IconButton";
-import { IoEllipseOutline, IoSquareOutline } from "react-icons/io5";
+import { 
+  IoEllipseOutline, 
+  IoSquareOutline, 
+  IoStarOutline,
+  IoRemoveOutline,
+  IoArrowForwardOutline,
+  IoStopOutline,
+  IoImageOutline,
+  IoVideocamOutline
+} from "react-icons/io5";
+import { BiPolygon } from "react-icons/bi";
+
+type ShapeLayerType = LayerType.Rectangle | LayerType.Ellipse | LayerType.Star | LayerType.Line | LayerType.Arrow | LayerType.Polygon | LayerType.Image | LayerType.Video;
 
 export default function ShapesSelectionButton({
   isActive,
@@ -12,7 +22,7 @@ export default function ShapesSelectionButton({
 }: {
   isActive: boolean;
   canvasState: CanvasState;
-  onClick: (layerType: LayerType.Rectangle | LayerType.Ellipse) => void;
+  onClick: (layerType: ShapeLayerType) => void;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -28,18 +38,30 @@ export default function ShapesSelectionButton({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleClick = (layerType: LayerType.Rectangle | LayerType.Ellipse) => {
+  const handleClick = (layerType: ShapeLayerType) => {
     onClick(layerType);
     setIsOpen(false);
   };
 
   const getCurrentIcon = () => {
     if (canvasState.mode === CanvasMode.Inserting) {
-      if (canvasState.layerType === LayerType.Ellipse) {
-        return <IoEllipseOutline className="h-5 w-5" />;
-      }
-      if (canvasState.layerType === LayerType.Rectangle) {
-        return <IoSquareOutline className="h-5 w-5" />;
+      switch (canvasState.layerType) {
+        case LayerType.Ellipse:
+          return <IoEllipseOutline className="h-5 w-5" />;
+        case LayerType.Rectangle:
+          return <IoSquareOutline className="h-5 w-5" />;
+        case LayerType.Star:
+          return <IoStarOutline className="h-5 w-5" />;
+        case LayerType.Line:
+          return <IoRemoveOutline className="h-5 w-5" />;
+        case LayerType.Arrow:
+          return <IoArrowForwardOutline className="h-5 w-5" />;
+        case LayerType.Polygon:
+          return <BiPolygon className="h-5 w-5" />;
+        case LayerType.Image:
+          return <IoImageOutline className="h-5 w-5" />;
+        case LayerType.Video:
+          return <IoVideocamOutline className="h-5 w-5" />;
       }
     }
     // Default to rectangle icon when not in inserting mode or when inserting something else
@@ -48,11 +70,23 @@ export default function ShapesSelectionButton({
 
   const getTooltip = () => {
     if (canvasState.mode === CanvasMode.Inserting) {
-      if (canvasState.layerType === LayerType.Ellipse) {
-        return "Ellipse (E)";
-      }
-      if (canvasState.layerType === LayerType.Rectangle) {
-        return "Rectangle (R)";
+      switch (canvasState.layerType) {
+        case LayerType.Ellipse:
+          return "Ellipse (E)";
+        case LayerType.Rectangle:
+          return "Rectangle (R)";
+        case LayerType.Star:
+          return "Star (S)";
+        case LayerType.Line:
+          return "Line (L)";
+        case LayerType.Arrow:
+          return "Arrow (A)";
+        case LayerType.Polygon:
+          return "Polygon (P)";
+        case LayerType.Image:
+          return "Image (I)";
+        case LayerType.Video:
+          return "Video (V)";
       }
     }
     return "Rectangle (R)";
@@ -76,7 +110,7 @@ export default function ShapesSelectionButton({
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute -top-20 mt-1 min-w-[150px] rounded-xl bg-[#1e1e1e] p-2 shadow-lg">
+        <div className="absolute top-full mt-1 left-0 min-w-[150px] rounded-xl bg-[#1e1e1e] p-2 shadow-lg z-50">
           <button
             className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Rectangle ? "bg-blue-500" : ""}`}
             onClick={() => handleClick(LayerType.Rectangle)}
@@ -106,6 +140,96 @@ export default function ShapesSelectionButton({
               <span className="text-xs">Ellipse</span>
             </div>
             <span className="text-xs text-gray-400">E</span>
+          </button>
+          <button
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Star ? "bg-blue-500" : ""}`}
+            onClick={() => handleClick(LayerType.Star)}
+          >
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasState.mode === CanvasMode.Inserting &&
+                  canvasState.layerType === LayerType.Star &&
+                  "✓"}
+              </span>
+              <IoStarOutline className="mr-2 h-4 w-4" />
+              <span className="text-xs">Star</span>
+            </div>
+            <span className="text-xs text-gray-400">S</span>
+          </button>
+          <button
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Line ? "bg-blue-500" : ""}`}
+            onClick={() => handleClick(LayerType.Line)}
+          >
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasState.mode === CanvasMode.Inserting &&
+                  canvasState.layerType === LayerType.Line &&
+                  "✓"}
+              </span>
+              <IoRemoveOutline className="mr-2 h-4 w-4" />
+              <span className="text-xs">Line</span>
+            </div>
+            <span className="text-xs text-gray-400">L</span>
+          </button>
+          <button
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Arrow ? "bg-blue-500" : ""}`}
+            onClick={() => handleClick(LayerType.Arrow)}
+          >
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasState.mode === CanvasMode.Inserting &&
+                  canvasState.layerType === LayerType.Arrow &&
+                  "✓"}
+              </span>
+              <IoArrowForwardOutline className="mr-2 h-4 w-4" />
+              <span className="text-xs">Arrow</span>
+            </div>
+            <span className="text-xs text-gray-400">A</span>
+          </button>
+          <button
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Polygon ? "bg-blue-500" : ""}`}
+            onClick={() => handleClick(LayerType.Polygon)}
+          >
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasState.mode === CanvasMode.Inserting &&
+                  canvasState.layerType === LayerType.Polygon &&
+                  "✓"}
+              </span>
+              <BiPolygon className="mr-2 h-4 w-4" />
+              <span className="text-xs">Polygon</span>
+            </div>
+            <span className="text-xs text-gray-400">P</span>
+          </button>
+          <button
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Image ? "bg-blue-500" : ""}`}
+            onClick={() => handleClick(LayerType.Image)}
+          >
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasState.mode === CanvasMode.Inserting &&
+                  canvasState.layerType === LayerType.Image &&
+                  "✓"}
+              </span>
+              <IoImageOutline className="mr-2 h-4 w-4" />
+              <span className="text-xs">Image</span>
+            </div>
+            <span className="text-xs text-gray-400">I</span>
+          </button>
+          <button
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Video ? "bg-blue-500" : ""}`}
+            onClick={() => handleClick(LayerType.Video)}
+          >
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasState.mode === CanvasMode.Inserting &&
+                  canvasState.layerType === LayerType.Video &&
+                  "✓"}
+              </span>
+              <IoVideocamOutline className="mr-2 h-4 w-4" />
+              <span className="text-xs">Video</span>
+            </div>
+            <span className="text-xs text-gray-400">V</span>
           </button>
         </div>
       )}

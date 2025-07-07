@@ -33,21 +33,6 @@ export default function ToolsBar({
   undo: () => void;
   redo: () => void;
 }) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
-  const toolbarRef = useRef<HTMLDivElement>(null);
-
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only start dragging if clicking on the toolbar background, not on buttons
-    if (e.target === e.currentTarget || (e.target as Element).closest('.toolbar-drag-handle')) {
-      setIsDragging(true);
-      setDragStart({
-        x: e.clientX - position.x,
-        y: e.clientY - position.y,
-      });
-      e.preventDefault();
-    }
   }, [position]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
@@ -116,7 +101,7 @@ export default function ToolsBar({
         <ShapesSelectionButton
           isActive={
             canvasState.mode === CanvasMode.Inserting &&
-            [LayerType.Rectangle, LayerType.Ellipse].includes(
+            [LayerType.Rectangle, LayerType.Ellipse, LayerType.Star, LayerType.Line, LayerType.Arrow, LayerType.Polygon, LayerType.Image, LayerType.Video].includes(
               canvasState.layerType,
             )
           }

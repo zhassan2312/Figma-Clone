@@ -157,7 +157,28 @@ export function findIntersectionLayersWithRectangle(
 
     if (layer == null) continue;
 
-    const { x, y, height, width } = layer;
+    // Handle different layer types
+    let layerBounds: { x: number; y: number; width: number; height: number };
+    
+    if (layer.type === LayerType.Line || layer.type === LayerType.Arrow) {
+      const lineLayer = layer as any;
+      layerBounds = {
+        x: Math.min(lineLayer.x, lineLayer.x2),
+        y: Math.min(lineLayer.y, lineLayer.y2),
+        width: Math.abs(lineLayer.x2 - lineLayer.x),
+        height: Math.abs(lineLayer.y2 - lineLayer.y),
+      };
+    } else {
+      const rectLayer = layer as any;
+      layerBounds = {
+        x: rectLayer.x,
+        y: rectLayer.y,
+        width: rectLayer.width || 0,
+        height: rectLayer.height || 0,
+      };
+    }
+
+    const { x, y, height, width } = layerBounds;
     if (
       rect.x + rect.width > x &&
       rect.x < x + width &&

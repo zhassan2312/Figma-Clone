@@ -1,28 +1,52 @@
 import { shallow, useSelf, useStorage } from "@liveblocks/react";
-import { Layer, XYWH } from "@/types";
+import { Layer, XYWH, LayerType } from "@/types";
 
 function boundingBox(layers: Layer[]): XYWH | null {
   const first = layers[0];
   if (!first) return null;
 
-  let left = first.x;
-  let right = first.x + first.width;
-  let top = first.y;
-  let bottom = first.y + first.height;
+  // Helper function to get bounds for any layer type
+  const getLayerBounds = (layer: Layer) => {
+    if (layer.type === LayerType.Line || layer.type === LayerType.Arrow) {
+      const lineLayer = layer as any;
+      return {
+        left: Math.min(lineLayer.x, lineLayer.x2),
+        right: Math.max(lineLayer.x, lineLayer.x2),
+        top: Math.min(lineLayer.y, lineLayer.y2),
+        bottom: Math.max(lineLayer.y, lineLayer.y2),
+      };
+    } else {
+      const rectLayer = layer as any;
+      return {
+        left: rectLayer.x,
+        right: rectLayer.x + (rectLayer.width || 0),
+        top: rectLayer.y,
+        bottom: rectLayer.y + (rectLayer.height || 0),
+      };
+    }
+  };
+
+  const firstBounds = getLayerBounds(first);
+  let left = firstBounds.left;
+  let right = firstBounds.right;
+  let top = firstBounds.top;
+  let bottom = firstBounds.bottom;
 
   for (let i = 1; i < layers.length; i++) {
-    const { x, y, width, height } = layers[i]!;
-    if (left > x) {
-      left = x;
+    const layer = layers[i]!;
+    const bounds = getLayerBounds(layer);
+    
+    if (left > bounds.left) {
+      left = bounds.left;
     }
-    if (right < x + width) {
-      right = x + width;
+    if (right < bounds.right) {
+      right = bounds.right;
     }
-    if (top > y) {
-      top = y;
+    if (top > bounds.top) {
+      top = bounds.top;
     }
-    if (bottom < y + height) {
-      bottom = y + height;
+    if (bottom < bounds.bottom) {
+      bottom = bounds.bottom;
     }
   }
 

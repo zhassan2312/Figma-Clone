@@ -31,6 +31,12 @@ export default function ToolIndicator({ canvasState, isVisible }: ToolIndicatorP
         case LayerType.Ellipse: return "Ellipse";
         case LayerType.Text: return "Text";
         case LayerType.Frame: return "Frame";
+        case LayerType.Star: return "Star";
+        case LayerType.Line: return "Line";
+        case LayerType.Arrow: return "Arrow";
+        case LayerType.Polygon: return "Polygon";
+        case LayerType.Image: return "Image";
+        case LayerType.Video: return "Video";
         default: return "Insert";
       }
     }

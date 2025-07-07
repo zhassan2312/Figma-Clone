@@ -4,7 +4,7 @@ import { useCallback, useEffect } from "react";
 import { useMutation, useSelf, useStorage } from "@liveblocks/react";
 import { LiveObject } from "@liveblocks/client";
 import { nanoid } from "nanoid";
-import { Layer, LayerType, CanvasMode } from "@/types";
+import { Layer, LayerType, CanvasMode, FrameLayer } from "@/types";
 import useDeleteLayers from "./useDeleteLayers";
 
 export default function useKeyboardShortcuts({
@@ -302,18 +302,23 @@ export default function useKeyboardShortcuts({
       const frameWidth = maxX - minX + padding * 2;
       const frameHeight = maxY - minY + padding * 2;
       
-      // Create a new frame
+      // Generate unique name for the frame
+      const existingFrames = Array.from(liveLayers.values()).filter(layer => layer.get("type") === LayerType.Frame);
+      const frameName = `Frame ${existingFrames.length + 1}`;
+      
+      // Create a new frame with exact same properties as regular frame creation
       const frameId = nanoid();
-      const frameLayer = {
+      const frameLayer: FrameLayer = {
         type: LayerType.Frame,
         x: frameX,
         y: frameY,
         width: frameWidth,
         height: frameHeight,
-        fill: { r: 255, g: 255, b: 255, a: 0.1 },
-        stroke: { r: 0, g: 0, b: 0 },
-        opacity: 1,
-        name: `Frame ${liveLayerIds.length + 1}`,
+        fill: { r: 255, g: 255, b: 255 },
+        stroke: { r: 153, g: 153, b: 153 },
+        opacity: 100,
+        cornerRadius: 0,
+        name: frameName,
         children: selectedLayers.map(({ id }) => id),
         parentId: undefined,
         visible: true,
@@ -331,7 +336,7 @@ export default function useKeyboardShortcuts({
       });
       
       // Add the frame to layers
-      liveLayers.set(frameId, new LiveObject(frameLayer as any));
+      liveLayers.set(frameId, new LiveObject<FrameLayer>(frameLayer));
       liveLayerIds.push(frameId);
       
       // Select the new frame

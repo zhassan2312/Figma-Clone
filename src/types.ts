@@ -17,6 +17,12 @@ export enum LayerType {
   Text,
   Frame,
   Group,
+  Star,
+  Line,
+  Arrow,
+  Polygon,
+  Image,
+  Video,
 }
 
 export type RectangleLayer = {
@@ -117,7 +123,108 @@ export type GroupLayer = {
   expanded?: boolean; // Whether children are expanded in layers panel (default: true)
 };
 
-export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer | FrameLayer | GroupLayer;
+export type StarLayer = {
+  type: LayerType.Star;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  fill: Color;
+  stroke: Color;
+  opacity: number;
+  cornerRadius?: number;
+  vertices: number; // Number of star vertices (default: 5)
+  innerRadius: number; // Inner radius ratio (0-1, default: 0.5)
+  name?: string;
+  parentId?: string;
+  visible?: boolean;
+  locked?: boolean;
+};
+
+export type LineLayer = {
+  type: LayerType.Line;
+  x: number;
+  y: number;
+  x2: number;
+  y2: number;
+  stroke: Color;
+  opacity: number;
+  strokeWidth: number;
+  isDashed: boolean;
+  name?: string;
+  parentId?: string;
+  visible?: boolean;
+  locked?: boolean;
+};
+
+export type ArrowLayer = {
+  type: LayerType.Arrow;
+  x: number;
+  y: number;
+  x2: number;
+  y2: number;
+  stroke: Color;
+  opacity: number;
+  strokeWidth: number;
+  isDashed: boolean;
+  arrowStart: boolean; // Arrow head at start
+  arrowEnd: boolean; // Arrow head at end
+  arrowSize: number; // Size of arrow heads
+  name?: string;
+  parentId?: string;
+  visible?: boolean;
+  locked?: boolean;
+};
+
+export type PolygonLayer = {
+  type: LayerType.Polygon;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  fill: Color;
+  stroke: Color;
+  opacity: number;
+  sides: number; // Number of polygon sides (default: 6)
+  name?: string;
+  parentId?: string;
+  visible?: boolean;
+  locked?: boolean;
+};
+
+export type ImageLayer = {
+  type: LayerType.Image;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  opacity: number;
+  src: string; // Image URL or data URI
+  name?: string;
+  parentId?: string;
+  visible?: boolean;
+  locked?: boolean;
+};
+
+export type VideoLayer = {
+  type: LayerType.Video;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  opacity: number;
+  src: string; // Video URL
+  poster?: string; // Poster image URL
+  controls: boolean;
+  autoplay: boolean;
+  muted: boolean;
+  name?: string;
+  parentId?: string;
+  visible?: boolean;
+  locked?: boolean;
+};
+
+export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer | FrameLayer | GroupLayer | StarLayer | LineLayer | ArrowLayer | PolygonLayer | ImageLayer | VideoLayer;
 
 export type Point = {
   x: number;
@@ -157,7 +264,7 @@ export type CanvasState =
     }
   | {
       mode: CanvasMode.Inserting;
-      layerType: LayerType.Rectangle | LayerType.Ellipse | LayerType.Text | LayerType.Frame;
+      layerType: LayerType.Rectangle | LayerType.Ellipse | LayerType.Text | LayerType.Frame | LayerType.Star | LayerType.Line | LayerType.Arrow | LayerType.Polygon | LayerType.Image | LayerType.Video;
     }
   | {
       mode: CanvasMode.Pencil;

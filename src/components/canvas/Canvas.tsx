@@ -232,7 +232,7 @@ export default function Canvas({
   const insertLayer = useMutation(
     (
       { storage, setMyPresence },
-      layerType: LayerType.Ellipse | LayerType.Rectangle | LayerType.Text | LayerType.Frame,
+      layerType: LayerType.Ellipse | LayerType.Rectangle | LayerType.Text | LayerType.Frame | LayerType.Star | LayerType.Line | LayerType.Arrow | LayerType.Polygon | LayerType.Image | LayerType.Video,
       position: Point,
     ) => {
       const liveLayers = storage.get("layers");
@@ -251,10 +251,11 @@ export default function Canvas({
         for (const id of frameIds) {
           const layer = liveLayers.get(id);
           if (layer?.get("type") === LayerType.Frame || layer?.get("type") === LayerType.Group) {
-            const x = layer.get("x");
-            const y = layer.get("y");
-            const width = layer.get("width");
-            const height = layer.get("height");
+            const layerData = layer.toObject() as any;
+            const x = layerData.x;
+            const y = layerData.y;
+            const width = layerData.width;
+            const height = layerData.height;
             
             // Check if position is inside this frame/group
             if (position.x >= x && position.x <= x + width &&
@@ -277,7 +278,13 @@ export default function Canvas({
           [LayerType.Text]: "Text",
           [LayerType.Frame]: "Frame",
           [LayerType.Path]: "Drawing",
-          [LayerType.Group]: "Group"
+          [LayerType.Group]: "Group",
+          [LayerType.Star]: "Star",
+          [LayerType.Line]: "Line",
+          [LayerType.Arrow]: "Arrow",
+          [LayerType.Polygon]: "Polygon",
+          [LayerType.Image]: "Image",
+          [LayerType.Video]: "Video"
         } as const;
         return `${baseNames[type]} ${existingLayers.length + 1}`;
       };
@@ -349,6 +356,105 @@ export default function Canvas({
           locked: false,
           expanded: true,
         });
+      } else if (layerType === LayerType.Star) {
+        layer = new LiveObject({
+          type: LayerType.Star,
+          x: position.x,
+          y: position.y,
+          height: 100,
+          width: 100,
+          fill: { r: 217, g: 217, b: 217 },
+          stroke: { r: 217, g: 217, b: 217 },
+          opacity: 100,
+          vertices: 5,
+          innerRadius: 0.5,
+          name: getNextLayerName(LayerType.Star),
+          parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
+        });
+      } else if (layerType === LayerType.Line) {
+        layer = new LiveObject({
+          type: LayerType.Line,
+          x: position.x,
+          y: position.y,
+          x2: position.x + 100,
+          y2: position.y + 100,
+          stroke: { r: 217, g: 217, b: 217 },
+          opacity: 100,
+          strokeWidth: 2,
+          isDashed: false,
+          name: getNextLayerName(LayerType.Line),
+          parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
+        });
+      } else if (layerType === LayerType.Arrow) {
+        layer = new LiveObject({
+          type: LayerType.Arrow,
+          x: position.x,
+          y: position.y,
+          x2: position.x + 100,
+          y2: position.y + 100,
+          stroke: { r: 217, g: 217, b: 217 },
+          opacity: 100,
+          strokeWidth: 2,
+          isDashed: false,
+          arrowStart: false,
+          arrowEnd: true,
+          arrowSize: 10,
+          name: getNextLayerName(LayerType.Arrow),
+          parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
+        });
+      } else if (layerType === LayerType.Polygon) {
+        layer = new LiveObject({
+          type: LayerType.Polygon,
+          x: position.x,
+          y: position.y,
+          height: 100,
+          width: 100,
+          fill: { r: 217, g: 217, b: 217 },
+          stroke: { r: 217, g: 217, b: 217 },
+          opacity: 100,
+          sides: 6,
+          name: getNextLayerName(LayerType.Polygon),
+          parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
+        });
+      } else if (layerType === LayerType.Image) {
+        layer = new LiveObject({
+          type: LayerType.Image,
+          x: position.x,
+          y: position.y,
+          height: 100,
+          width: 100,
+          opacity: 100,
+          src: "",
+          name: getNextLayerName(LayerType.Image),
+          parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
+        });
+      } else if (layerType === LayerType.Video) {
+        layer = new LiveObject({
+          type: LayerType.Video,
+          x: position.x,
+          y: position.y,
+          height: 100,
+          width: 100,
+          opacity: 100,
+          src: "",
+          controls: true,
+          autoplay: false,
+          muted: true,
+          name: getNextLayerName(LayerType.Video),
+          parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
+        });
       }
 
       if (layer) {
@@ -396,10 +502,11 @@ export default function Canvas({
       for (const id of frameIds) {
         const layer = liveLayers.get(id);
         if (layer?.get("type") === LayerType.Frame || layer?.get("type") === LayerType.Group) {
-          const x = layer.get("x");
-          const y = layer.get("y");
-          const width = layer.get("width");
-          const height = layer.get("height");
+          const layerData = layer.toObject() as any;
+          const x = layerData.x;
+          const y = layerData.y;
+          const width = layerData.width;
+          const height = layerData.height;
           
           if (position.x >= x && position.x <= x + width &&
               position.y >= y && position.y <= y + height) {

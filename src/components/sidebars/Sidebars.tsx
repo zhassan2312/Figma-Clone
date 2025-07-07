@@ -2,12 +2,16 @@
 
 import { useMutation, useOthers, useSelf, useStorage } from "@liveblocks/react";
 import { LiveObject } from "@liveblocks/client";
+import { updateRoomTitle } from "@/app/actions/rooms";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AiOutlineFontSize } from "react-icons/ai";
 import { IoEllipseOutline, IoSquareOutline } from "react-icons/io5";
 import { PiPathLight, PiSidebarSimpleThin } from "react-icons/pi";
 import { RiRectangleLine, RiRoundedCorner } from "react-icons/ri";
+import { BsStarFill, BsImage, BsPlayCircle } from "react-icons/bs";
+import { MdOutlineArrowForward, MdOutlineHexagon } from "react-icons/md";
+import { FiMinus } from "react-icons/fi";
 import { Color, LayerType, FrameLayer } from "~/types";
 import { colorToCss, connectionIdToColor, hexToRgb } from "~/utils";
 import LayerButton from "./LayerButton";
@@ -114,7 +118,35 @@ export default function Sidebars({
     [selectedLayer],
   );
 
-  // Handle layer renaming
+  // Handle room name editing
+  const handleRoomNameSave = async () => {
+    if (tempRoomName.trim() && tempRoomName !== roomName) {
+      try {
+        await updateRoomTitle(tempRoomName.trim(), roomId);
+        setEditingRoomName(false);
+      } catch (error) {
+        console.error("Failed to update room name:", error);
+        setTempRoomName(roomName); // Revert on error
+        setEditingRoomName(false);
+      }
+    } else {
+      setEditingRoomName(false);
+      setTempRoomName(roomName); // Revert if no change
+    }
+  };
+
+  const handleRoomNameCancel = () => {
+    setTempRoomName(roomName);
+    setEditingRoomName(false);
+  };
+
+  const handleRoomNameKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleRoomNameSave();
+    } else if (e.key === "Escape") {
+      handleRoomNameCancel();
+    }
+  };
   const handleLayerRename = useMutation(
     ({ storage }, layerId: string, newName: string) => {
       const liveLayers = storage.get("layers");
@@ -129,6 +161,8 @@ export default function Sidebars({
   const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
   const [draggedLayerId, setDraggedLayerId] = useState<string | null>(null);
   const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null);
+  const [editingRoomName, setEditingRoomName] = useState(false);
+  const [tempRoomName, setTempRoomName] = useState(roomName);
 
   // Handle layer property updates
   const updateLayerProperty = useMutation(
@@ -332,7 +366,25 @@ export default function Sidebars({
               />
             </div>
             <h2 className="mt-2 scroll-m-20 text-[13px] font-medium">
-              {roomName}
+              {editingRoomName ? (
+                <input
+                  type="text"
+                  value={tempRoomName}
+                  onChange={(e) => setTempRoomName(e.target.value)}
+                  onBlur={handleRoomNameSave}
+                  onKeyDown={handleRoomNameKeyDown}
+                  className="w-full rounded border border-gray-300 px-1 py-0.5 text-[13px] font-medium"
+                  autoFocus
+                />
+              ) : (
+                <span
+                  onClick={() => setEditingRoomName(true)}
+                  className="cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5"
+                  title="Click to edit room name"
+                >
+                  {roomName}
+                </span>
+              )}
             </h2>
           </div>
           <div className="border-b border-gray-200" />
@@ -401,6 +453,48 @@ export default function Sidebars({
                       <LayerButtonWithIcon 
                         icon={<AiOutlineFontSize className="h-3 w-3 text-gray-500" />}
                         name="Text"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Star) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<BsStarFill className="h-3 w-3 text-gray-500" />}
+                        name="Star"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Line) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<FiMinus className="h-3 w-3 text-gray-500" />}
+                        name="Line"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Arrow) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<MdOutlineArrowForward className="h-3 w-3 text-gray-500" />}
+                        name="Arrow"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Polygon) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<MdOutlineHexagon className="h-3 w-3 text-gray-500" />}
+                        name="Polygon"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Image) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<BsImage className="h-3 w-3 text-gray-500" />}
+                        name="Image"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Video) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<BsPlayCircle className="h-3 w-3 text-gray-500" />}
+                        name="Video"
                       />
                     );
                   } else if (layer.type === LayerType.Frame) {
@@ -498,7 +592,27 @@ export default function Sidebars({
               className="h-[18px w-[18px]"
             />
           </Link>
-          <h2 className="scroll-m-20 text-[13px] font-medium">{roomName}</h2>
+          <h2 className="scroll-m-20 text-[13px] font-medium">
+            {editingRoomName ? (
+              <input
+                type="text"
+                value={tempRoomName}
+                onChange={(e) => setTempRoomName(e.target.value)}
+                onBlur={handleRoomNameSave}
+                onKeyDown={handleRoomNameKeyDown}
+                className="w-full rounded border border-gray-300 px-1 py-0.5 text-[13px] font-medium"
+                autoFocus
+              />
+            ) : (
+              <span
+                onClick={() => setEditingRoomName(true)}
+                className="cursor-pointer hover:bg-gray-100 rounded px-1 py-0.5"
+                title="Click to edit room name"
+              >
+                {roomName}
+              </span>
+            )}
+          </h2>
           <PiSidebarSimpleThin
             onClick={() => setLeftIsMinimized(false)}
             className="h-5 w-5 cursor-pointer"
@@ -606,7 +720,7 @@ export default function Sidebars({
                 </div>
               </div>
 
-              {layer.type !== LayerType.Path && (
+              {layer.type !== LayerType.Path && layer.type !== LayerType.Line && layer.type !== LayerType.Arrow && (
                 <>
                   <div className="border-b border-gray-200"></div>
                   <div className="flex flex-col gap-2 p-4">
@@ -617,7 +731,7 @@ export default function Sidebars({
                       </p>
                       <div className="flex w-full gap-2">
                         <NumberInput
-                          value={layer.width}
+                          value={(layer as any).width}
                           onChange={(number) => {
                             updateLayer({ width: number });
                           }}
@@ -625,12 +739,59 @@ export default function Sidebars({
                           icon={<p>W</p>}
                         />
                         <NumberInput
-                          value={layer.height}
+                          value={(layer as any).height}
                           onChange={(number) => {
                             updateLayer({ height: number });
                           }}
                           classNames="w-1/2"
                           icon={<p>H</p>}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {(layer.type === LayerType.Line || layer.type === LayerType.Arrow) && (
+                <>
+                  <div className="border-b border-gray-200"></div>
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Line Points</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex w-full gap-2">
+                        <NumberInput
+                          value={(layer as any).x}
+                          onChange={(number) => {
+                            updateLayer({ x: number });
+                          }}
+                          classNames="w-1/2"
+                          icon={<p>X1</p>}
+                        />
+                        <NumberInput
+                          value={(layer as any).y}
+                          onChange={(number) => {
+                            updateLayer({ y: number });
+                          }}
+                          classNames="w-1/2"
+                          icon={<p>Y1</p>}
+                        />
+                      </div>
+                      <div className="flex w-full gap-2">
+                        <NumberInput
+                          value={(layer as any).x2}
+                          onChange={(number) => {
+                            updateLayerProperty(selectedLayer!, "x2", number);
+                          }}
+                          classNames="w-1/2"
+                          icon={<p>X2</p>}
+                        />
+                        <NumberInput
+                          value={(layer as any).y2}
+                          onChange={(number) => {
+                            updateLayerProperty(selectedLayer!, "y2", number);
+                          }}
+                          classNames="w-1/2"
+                          icon={<p>Y2</p>}
                         />
                       </div>
                     </div>
@@ -748,6 +909,297 @@ export default function Sidebars({
                               "900",
                             ]}
                           />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              {layer.type === LayerType.Star && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Star Properties</span>
+                    <div className="flex w-full gap-2">
+                      <div className="flex w-1/2 flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Vertices
+                        </p>
+                        <NumberInput
+                          value={(layer as any).vertices || 5}
+                          min={3}
+                          max={20}
+                          onChange={(number) => {
+                            updateLayerProperty(selectedLayer!, "vertices", number);
+                          }}
+                          classNames="w-full"
+                          icon={<p>V</p>}
+                        />
+                      </div>
+                      <div className="flex w-1/2 flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Inner Radius
+                        </p>
+                        <NumberInput
+                          value={Math.round(((layer as any).innerRadius || 0.5) * 100)}
+                          min={10}
+                          max={90}
+                          onChange={(number) => {
+                            updateLayerProperty(selectedLayer!, "innerRadius", number / 100);
+                          }}
+                          classNames="w-full"
+                          icon={<p>%</p>}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              {layer.type === LayerType.Line && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Line Properties</span>
+                    <div className="flex w-full gap-2">
+                      <div className="flex w-1/2 flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Stroke Width
+                        </p>
+                        <NumberInput
+                          value={(layer as any).strokeWidth || 2}
+                          min={1}
+                          max={20}
+                          onChange={(number) => {
+                            updateLayerProperty(selectedLayer!, "strokeWidth", number);
+                          }}
+                          classNames="w-full"
+                          icon={<p>W</p>}
+                        />
+                      </div>
+                      <div className="flex w-1/2 flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Dashed
+                        </p>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={(layer as any).isDashed || false}
+                            onChange={(e) => {
+                              updateLayerProperty(selectedLayer!, "isDashed", e.target.checked);
+                            }}
+                            className="rounded border border-gray-300"
+                          />
+                          <span className="text-xs">Dashed line</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              {layer.type === LayerType.Arrow && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Arrow Properties</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex w-full gap-2">
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Stroke Width
+                          </p>
+                          <NumberInput
+                            value={(layer as any).strokeWidth || 2}
+                            min={1}
+                            max={20}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "strokeWidth", number);
+                            }}
+                            classNames="w-full"
+                            icon={<p>W</p>}
+                          />
+                        </div>
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Arrow Size
+                          </p>
+                          <NumberInput
+                            value={(layer as any).arrowSize || 10}
+                            min={5}
+                            max={30}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "arrowSize", number);
+                            }}
+                            classNames="w-full"
+                            icon={<p>S</p>}
+                          />
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Arrow Heads
+                        </p>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={(layer as any).arrowStart || false}
+                              onChange={(e) => {
+                                updateLayerProperty(selectedLayer!, "arrowStart", e.target.checked);
+                              }}
+                              className="rounded border border-gray-300"
+                            />
+                            <span className="text-xs">Start</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={(layer as any).arrowEnd || false}
+                              onChange={(e) => {
+                                updateLayerProperty(selectedLayer!, "arrowEnd", e.target.checked);
+                              }}
+                              className="rounded border border-gray-300"
+                            />
+                            <span className="text-xs">End</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Dashed
+                        </p>
+                        <label className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={(layer as any).isDashed || false}
+                            onChange={(e) => {
+                              updateLayerProperty(selectedLayer!, "isDashed", e.target.checked);
+                            }}
+                            className="rounded border border-gray-300"
+                          />
+                          <span className="text-xs">Dashed line</span>
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+              {layer.type === LayerType.Polygon && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Polygon Properties</span>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[9px] font-medium text-gray-500">
+                        Sides
+                      </p>
+                      <NumberInput
+                        value={(layer as any).sides || 6}
+                        min={3}
+                        max={20}
+                        onChange={(number) => {
+                          updateLayerProperty(selectedLayer!, "sides", number);
+                        }}
+                        classNames="w-full"
+                        icon={<p>S</p>}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+              {layer.type === LayerType.Image && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Image Properties</span>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[9px] font-medium text-gray-500">
+                        Source URL
+                      </p>
+                      <input
+                        type="text"
+                        value={(layer as any).src || ""}
+                        onChange={(e) => {
+                          updateLayerProperty(selectedLayer!, "src", e.target.value);
+                        }}
+                        className="rounded border border-gray-300 px-2 py-1 text-xs"
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+              {layer.type === LayerType.Video && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Video Properties</span>
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Source URL
+                        </p>
+                        <input
+                          type="text"
+                          value={(layer as any).src || ""}
+                          onChange={(e) => {
+                            updateLayerProperty(selectedLayer!, "src", e.target.value);
+                          }}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs"
+                          placeholder="https://example.com/video.mp4"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Poster Image (Optional)
+                        </p>
+                        <input
+                          type="text"
+                          value={(layer as any).poster || ""}
+                          onChange={(e) => {
+                            updateLayerProperty(selectedLayer!, "poster", e.target.value);
+                          }}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs"
+                          placeholder="https://example.com/poster.jpg"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Controls
+                        </p>
+                        <div className="flex gap-4">
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={(layer as any).controls !== false}
+                              onChange={(e) => {
+                                updateLayerProperty(selectedLayer!, "controls", e.target.checked);
+                              }}
+                              className="rounded border border-gray-300"
+                            />
+                            <span className="text-xs">Show controls</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={(layer as any).autoplay || false}
+                              onChange={(e) => {
+                                updateLayerProperty(selectedLayer!, "autoplay", e.target.checked);
+                              }}
+                              className="rounded border border-gray-300"
+                            />
+                            <span className="text-xs">Autoplay</span>
+                          </label>
+                          <label className="flex items-center gap-2">
+                            <input
+                              type="checkbox"
+                              checked={(layer as any).muted !== false}
+                              onChange={(e) => {
+                                updateLayerProperty(selectedLayer!, "muted", e.target.checked);
+                              }}
+                              className="rounded border border-gray-300"
+                            />
+                            <span className="text-xs">Muted</span>
+                          </label>
                         </div>
                       </div>
                     </div>
