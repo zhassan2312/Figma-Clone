@@ -7,7 +7,6 @@ import bcrypt from "bcryptjs";
 import { redirect } from "next/navigation";
 import { signIn, signOut } from "@/server/auth";
 import { AuthError } from "next-auth";
-import otp from "otp-generator";
 import { sendVerificationEmail } from "@/server/email";
 
 export async function signout() {
@@ -62,10 +61,7 @@ export async function register(
 
     const hash = await bcrypt.hash(password, 10);
 
-    const verificationCode = otp.generate(6, {
-      specialChars: false,
-      digits: true,
-    });
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
     await db.user.create({
       data: {
@@ -142,10 +138,7 @@ export async function resendVerificationCode(email: string) {
       return "User not found";
     }
 
-    const newVerificationCode = otp.generate(6, {
-      specialChars: false,
-      digits: true,
-    });
+    const newVerificationCode = Math.floor(100000 + Math.random() * 900000).toString();
     
     await db.user.update({
       where: { email },
