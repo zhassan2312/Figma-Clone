@@ -59,6 +59,7 @@ export default function Canvas({
   const [leftIsMinimized, setLeftIsMinimized] = useState(false);
   const roomColor = useStorage((root) => root.roomColor);
   const layerIds = useStorage((root) => root.layerIds);
+  const layers = useStorage((root) => root.layers);
   const pencilDraft = useSelf((me) => me.presence.pencilDraft);
   const deleteLayers = useDeleteLayers();
   const [canvasState, setState] = useState<CanvasState>({
@@ -157,6 +158,30 @@ export default function Canvas({
       const layerId = nanoid();
       let layer: LiveObject<Layer> | null = null;
 
+      // Find if the position is inside a frame
+      const findContainingFrame = (position: Point): string | null => {
+        // Get all frame layers, check from top to bottom (reverse order)
+        const frameIds = Array.from(liveLayerIds).reverse();
+        for (const id of frameIds) {
+          const layer = liveLayers.get(id);
+          if (layer?.get("type") === LayerType.Frame) {
+            const x = layer.get("x");
+            const y = layer.get("y");
+            const width = layer.get("width");
+            const height = layer.get("height");
+            
+            // Check if position is inside this frame
+            if (position.x >= x && position.x <= x + width &&
+                position.y >= y && position.y <= y + height) {
+              return id;
+            }
+          }
+        }
+        return null;
+      };
+
+      const parentFrameId = findContainingFrame(position);
+
       // Generate unique names by counting existing layers of the same type
       const getNextLayerName = (type: LayerType): string => {
         const existingLayers = Array.from(liveLayers.values()).filter(layer => layer.get("type") === type);
@@ -181,6 +206,7 @@ export default function Canvas({
           stroke: { r: 217, g: 217, b: 217 },
           opacity: 100,
           name: getNextLayerName(LayerType.Rectangle),
+          parentId: parentFrameId || undefined,
         });
       } else if (layerType === LayerType.Ellipse) {
         layer = new LiveObject<EllipseLayer>({
@@ -193,6 +219,7 @@ export default function Canvas({
           stroke: { r: 217, g: 217, b: 217 },
           opacity: 100,
           name: getNextLayerName(LayerType.Ellipse),
+          parentId: parentFrameId || undefined,
         });
       } else if (layerType === LayerType.Text) {
         layer = new LiveObject<TextLayer>({
@@ -209,6 +236,7 @@ export default function Canvas({
           fill: { r: 217, g: 217, b: 217 },
           opacity: 100,
           name: getNextLayerName(LayerType.Text),
+          parentId: parentFrameId || undefined,
         });
       } else if (layerType === LayerType.Frame) {
         layer = new LiveObject<FrameLayer>({
@@ -223,12 +251,22 @@ export default function Canvas({
           cornerRadius: 0,
           name: getNextLayerName(LayerType.Frame),
           children: [],
+          parentId: parentFrameId || undefined,
         });
       }
 
       if (layer) {
         liveLayerIds.push(layerId);
         liveLayers.set(layerId, layer);
+
+        // If the layer has a parent frame, add it to the parent's children
+        if (parentFrameId) {
+          const parentFrame = liveLayers.get(parentFrameId);
+          if (parentFrame && parentFrame.get("type") === LayerType.Frame) {
+            const currentChildren = (parentFrame as LiveObject<FrameLayer>).get("children") || [];
+            (parentFrame as LiveObject<FrameLayer>).update({ children: [...currentChildren, layerId] });
+          }
+        }
 
         setMyPresence({ selection: [layerId] }, { addToHistory: true });
         setState({ mode: CanvasMode.None });
@@ -250,13 +288,52 @@ export default function Canvas({
       return;
     }
 
+    // Generate unique name for the drawing
+    const existingPaths = Array.from(liveLayers.values()).filter(layer => layer.get("type") === LayerType.Path);
+    const drawingName = `Drawing ${existingPaths.length + 1}`;
+
+    // Find if the drawing starts inside a frame
+    const firstPoint = pencilDraft[0];
+    const findContainingFrame = (position: Point): string | null => {
+      const liveLayerIds = storage.get("layerIds");
+      const frameIds = Array.from(liveLayerIds).reverse();
+      for (const id of frameIds) {
+        const layer = liveLayers.get(id);
+        if (layer?.get("type") === LayerType.Frame) {
+          const x = layer.get("x");
+          const y = layer.get("y");
+          const width = layer.get("width");
+          const height = layer.get("height");
+          
+          if (position.x >= x && position.x <= x + width &&
+              position.y >= y && position.y <= y + height) {
+            return id;
+          }
+        }
+      }
+      return null;
+    };
+
+    const parentFrameId = firstPoint ? findContainingFrame({ x: firstPoint[0] || 0, y: firstPoint[1] || 0 }) : null;
+
     const id = nanoid();
-    liveLayers.set(
-      id,
-      new LiveObject(
-        penPointsToPathPayer(pencilDraft, { r: 217, g: 217, b: 217 }),
-      ),
+    const pathLayer = penPointsToPathPayer(
+      pencilDraft, 
+      { r: 217, g: 217, b: 217 },
+      drawingName,
+      parentFrameId || undefined
     );
+    
+    liveLayers.set(id, new LiveObject(pathLayer));
+
+    // If the path has a parent frame, add it to the parent's children
+    if (parentFrameId) {
+      const parentFrame = liveLayers.get(parentFrameId);
+      if (parentFrame && parentFrame.get("type") === LayerType.Frame) {
+        const currentChildren = (parentFrame as LiveObject<FrameLayer>).get("children") || [];
+        (parentFrame as LiveObject<FrameLayer>).update({ children: [...currentChildren, id] });
+      }
+    }
 
     const liveLayerIds = storage.get("layerIds");
     liveLayerIds.push(id);
@@ -535,7 +612,10 @@ export default function Canvas({
                 transform: `translate(${camera.x}px, ${camera.y}px) scale(${camera.zoom})`,
               }}
             >
-              {layerIds?.map((layerId) => (
+              {layerIds?.filter(layerId => {
+                const layer = layers?.get(layerId);
+                return !layer?.parentId; // Only render top-level layers
+              }).map((layerId) => (
                 <LayerComponent
                   key={layerId}
                   id={layerId}

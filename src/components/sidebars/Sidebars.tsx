@@ -1,13 +1,14 @@
 "use client";
 
 import { useMutation, useOthers, useSelf, useStorage } from "@liveblocks/react";
+import { LiveObject } from "@liveblocks/client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AiOutlineFontSize } from "react-icons/ai";
 import { IoEllipseOutline, IoSquareOutline } from "react-icons/io5";
 import { PiPathLight, PiSidebarSimpleThin } from "react-icons/pi";
 import { RiRectangleLine, RiRoundedCorner } from "react-icons/ri";
-import { Color, LayerType } from "~/types";
+import { Color, LayerType, FrameLayer } from "~/types";
 import { colorToCss, connectionIdToColor, hexToRgb } from "~/utils";
 import LayerButton from "./LayerButton";
 import NumberInput from "./NumberInput";
@@ -137,10 +138,11 @@ export default function Sidebars({
     }
   }, [isRenamingActive, selectedLayer, setIsRenamingActive]);
 
-  // Handle layer reordering
+  // Handle layer reordering and nesting
   const reorderLayers = useMutation(
     ({ storage }, sourceLayerId: string, targetLayerId: string) => {
       const liveLayerIds = storage.get("layerIds");
+      const liveLayers = storage.get("layers");
       const currentIds = [...liveLayerIds];
       
       const sourceIndex = currentIds.indexOf(sourceLayerId);
@@ -163,6 +165,40 @@ export default function Sidebars({
     []
   );
 
+  // Handle nesting a layer into a frame
+  const nestLayerInFrame = useMutation(
+    ({ storage }, childLayerId: string, parentFrameId: string) => {
+      const liveLayers = storage.get("layers");
+      const childLayer = liveLayers.get(childLayerId);
+      const parentFrame = liveLayers.get(parentFrameId);
+      
+      if (!childLayer || !parentFrame || parentFrame.get("type") !== LayerType.Frame) {
+        return;
+      }
+
+      // Remove from old parent if it exists
+      const oldParentId = childLayer.get("parentId");
+      if (oldParentId) {
+        const oldParent = liveLayers.get(oldParentId);
+        if (oldParent && oldParent.get("type") === LayerType.Frame) {
+          const oldParentFrame = oldParent as LiveObject<FrameLayer>;
+          const oldChildren = oldParentFrame.get("children") || [];
+          const filteredChildren = oldChildren.filter((id: string) => id !== childLayerId);
+          oldParentFrame.update({ children: filteredChildren });
+        }
+      }
+
+      // Add to new parent
+      const parentFrameTyped = parentFrame as LiveObject<FrameLayer>;
+      const currentChildren = parentFrameTyped.get("children") || [];
+      parentFrameTyped.update({ children: [...currentChildren, childLayerId] });
+      
+      // Update child's parentId
+      childLayer.update({ parentId: parentFrameId });
+    },
+    []
+  );
+
   const handleDragStart = (e: React.DragEvent, layerId: string) => {
     setDraggedLayerId(layerId);
     e.dataTransfer.effectAllowed = 'move';
@@ -181,7 +217,16 @@ export default function Sidebars({
     const sourceLayerId = e.dataTransfer.getData('text/plain') || draggedLayerId;
     
     if (sourceLayerId && sourceLayerId !== targetLayerId) {
-      reorderLayers(sourceLayerId, targetLayerId);
+      const targetLayer = layers?.get(targetLayerId);
+      
+      // Check if we're dropping on a frame (for nesting) or on another layer (for reordering)
+      if (targetLayer?.type === LayerType.Frame) {
+        // Nest the source layer into the target frame
+        nestLayerInFrame(sourceLayerId, targetLayerId);
+      } else {
+        // Regular reordering
+        reorderLayers(sourceLayerId, targetLayerId);
+      }
     }
     
     setDraggedLayerId(null);
@@ -219,115 +264,106 @@ export default function Sidebars({
           <div className="border-b border-gray-200" />
           <div className="flex flex-col gap-1 p-4">
             <span className="mb-2 text-[11px] font-medium">Layers</span>
-            {layerIds &&
-              reversedLayerIds.map((id) => {
-                const layer = layers?.get(id);
-                const isSelected = selection?.includes(id);
-                if (layer?.type === LayerType.Rectangle) {
-                  return (
-                    <LayerButton
-                      key={id}
-                      layerId={id}
-                      text={layer.name || "Rectangle"}
-                      isSelected={isSelected ?? false}
-                      icon={
-                        <IoSquareOutline className="h-3 w-3 text-gray-500" />
-                      }
-                      onRename={handleLayerRename}
-                      isEditing={editingLayerId === id}
-                      onEditingChange={(editing) => {
-                        if (!editing) setEditingLayerId(null);
-                      }}
-                      onDragStart={handleDragStart}
-                      onDragOver={(e) => handleDragOver(e, id)}
-                      onDrop={handleDrop}
-                      isDragOver={dragOverLayerId === id}
-                    />
+            {layerIds && 
+              (() => {
+                // Function to render layers hierarchically
+                const renderLayerHierarchy = (layerId: string, depth: number = 0): React.ReactNode => {
+                  const layer = layers?.get(layerId);
+                  const isSelected = selection?.includes(layerId);
+                  
+                  if (!layer) return null;
+
+                  const LayerButtonWithIcon = ({ icon, name }: { icon: React.ReactNode, name: string }) => (
+                    <div key={layerId} style={{ marginLeft: `${depth * 16}px` }}>
+                      <LayerButton
+                        layerId={layerId}
+                        text={layer.name || name}
+                        isSelected={isSelected ?? false}
+                        icon={icon}
+                        onRename={handleLayerRename}
+                        isEditing={editingLayerId === layerId}
+                        onEditingChange={(editing) => {
+                          if (!editing) setEditingLayerId(null);
+                        }}
+                        onDragStart={handleDragStart}
+                        onDragOver={(e) => handleDragOver(e, layerId)}
+                        onDrop={handleDrop}
+                        isDragOver={dragOverLayerId === layerId}
+                      />
+                    </div>
                   );
-                } else if (layer?.type === LayerType.Ellipse) {
-                  return (
-                    <LayerButton
-                      key={id}
-                      layerId={id}
-                      text={layer.name || "Ellipse"}
-                      isSelected={isSelected ?? false}
-                      icon={
-                        <IoEllipseOutline className="h-3 w-3 text-gray-500" />
-                      }
-                      onRename={handleLayerRename}
-                      isEditing={editingLayerId === id}
-                      onEditingChange={(editing) => {
-                        if (!editing) setEditingLayerId(null);
-                      }}
-                      onDragStart={handleDragStart}
-                      onDragOver={(e) => handleDragOver(e, id)}
-                      onDrop={handleDrop}
-                      isDragOver={dragOverLayerId === id}
-                    />
-                  );
-                } else if (layer?.type === LayerType.Path) {
-                  return (
-                    <LayerButton
-                      key={id}
-                      layerId={id}
-                      text={layer.name || "Drawing"}
-                      isSelected={isSelected ?? false}
-                      icon={<PiPathLight className="h-3 w-3 text-gray-500" />}
-                      onRename={handleLayerRename}
-                      isEditing={editingLayerId === id}
-                      onEditingChange={(editing) => {
-                        if (!editing) setEditingLayerId(null);
-                      }}
-                      onDragStart={handleDragStart}
-                      onDragOver={(e) => handleDragOver(e, id)}
-                      onDrop={handleDrop}
-                      isDragOver={dragOverLayerId === id}
-                    />
-                  );
-                } else if (layer?.type === LayerType.Text) {
-                  return (
-                    <LayerButton
-                      key={id}
-                      layerId={id}
-                      text={layer.name || "Text"}
-                      isSelected={isSelected ?? false}
-                      icon={
-                        <AiOutlineFontSize className="h-3 w-3 text-gray-500" />
-                      }
-                      onRename={handleLayerRename}
-                      isEditing={editingLayerId === id}
-                      onEditingChange={(editing) => {
-                        if (!editing) setEditingLayerId(null);
-                      }}
-                      onDragStart={handleDragStart}
-                      onDragOver={(e) => handleDragOver(e, id)}
-                      onDrop={handleDrop}
-                      isDragOver={dragOverLayerId === id}
-                    />
-                  );
-                } else if (layer?.type === LayerType.Frame) {
-                  return (
-                    <LayerButton
-                      key={id}
-                      layerId={id}
-                      text={layer.name || "Frame"}
-                      isSelected={isSelected ?? false}
-                      icon={
-                        <RiRectangleLine className="h-3 w-3 text-gray-500" />
-                      }
-                      onRename={handleLayerRename}
-                      isEditing={editingLayerId === id}
-                      onEditingChange={(editing) => {
-                        if (!editing) setEditingLayerId(null);
-                      }}
-                      onDragStart={handleDragStart}
-                      onDragOver={(e) => handleDragOver(e, id)}
-                      onDrop={handleDrop}
-                      isDragOver={dragOverLayerId === id}
-                    />
-                  );
-                }
-              })}
+
+                  let layerElement: React.ReactNode = null;
+
+                  if (layer.type === LayerType.Rectangle) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<IoSquareOutline className="h-3 w-3 text-gray-500" />}
+                        name="Rectangle"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Ellipse) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<IoEllipseOutline className="h-3 w-3 text-gray-500" />}
+                        name="Ellipse"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Path) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<PiPathLight className="h-3 w-3 text-gray-500" />}
+                        name="Drawing"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Text) {
+                    layerElement = (
+                      <LayerButtonWithIcon 
+                        icon={<AiOutlineFontSize className="h-3 w-3 text-gray-500" />}
+                        name="Text"
+                      />
+                    );
+                  } else if (layer.type === LayerType.Frame) {
+                    const frameLayer = layer as any; // Type assertion for frame
+                    const children = frameLayer.children || [];
+                    
+                    layerElement = (
+                      <div key={layerId}>
+                        <div style={{ marginLeft: `${depth * 16}px` }}>
+                          <LayerButton
+                            layerId={layerId}
+                            text={layer.name || "Frame"}
+                            isSelected={isSelected ?? false}
+                            icon={<RiRectangleLine className="h-3 w-3 text-gray-500" />}
+                            onRename={handleLayerRename}
+                            isEditing={editingLayerId === layerId}
+                            onEditingChange={(editing) => {
+                              if (!editing) setEditingLayerId(null);
+                            }}
+                            onDragStart={handleDragStart}
+                            onDragOver={(e) => handleDragOver(e, layerId)}
+                            onDrop={handleDrop}
+                            isDragOver={dragOverLayerId === layerId}
+                          />
+                        </div>
+                        {/* Render children */}
+                        {children.map((childId: string) => renderLayerHierarchy(childId, depth + 1))}
+                      </div>
+                    );
+                  }
+
+                  return layerElement;
+                };
+
+                // Get top-level layers (layers without parentId) in reverse order
+                const topLevelLayers = reversedLayerIds.filter(id => {
+                  const layer = layers?.get(id);
+                  return !layer?.parentId;
+                });
+
+                return topLevelLayers.map(id => renderLayerHierarchy(id));
+              })()
+            }
           </div>
         </div>
       ) : (

@@ -57,6 +57,8 @@ export function resizeBounds(bounds: XYWH, corner: Side, point: Point): XYWH {
 export function penPointsToPathPayer(
   points: number[][],
   color: Color,
+  name?: string,
+  parentId?: string,
 ): PathLayer {
   let left = Number.POSITIVE_INFINITY;
   let top = Number.POSITIVE_INFINITY;
@@ -98,6 +100,8 @@ export function penPointsToPathPayer(
           point[2] !== undefined,
       )
       .map(([x, y, pressure]) => [x - left, y - top, pressure]),
+    name,
+    parentId,
   };
 }
 

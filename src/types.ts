@@ -29,6 +29,7 @@ export type RectangleLayer = {
   opacity: number;
   cornerRadius?: number;
   name?: string;
+  parentId?: string; // ID of parent frame if nested
 };
 
 export type EllipseLayer = {
@@ -41,6 +42,7 @@ export type EllipseLayer = {
   stroke: Color;
   opacity: number;
   name?: string;
+  parentId?: string; // ID of parent frame if nested
 };
 
 export type PathLayer = {
@@ -54,6 +56,7 @@ export type PathLayer = {
   opacity: number;
   points: number[][];
   name?: string;
+  parentId?: string; // ID of parent frame if nested
 };
 
 export type TextLayer = {
@@ -70,6 +73,7 @@ export type TextLayer = {
   stroke: Color;
   opacity: number;
   name?: string;
+  parentId?: string; // ID of parent frame if nested
 };
 
 export type FrameLayer = {
@@ -84,6 +88,7 @@ export type FrameLayer = {
   cornerRadius?: number;
   name?: string;
   children?: string[]; // Array of child layer IDs for nesting
+  parentId?: string; // ID of parent frame if nested (frames can be nested in frames)
 };
 
 export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer | FrameLayer;

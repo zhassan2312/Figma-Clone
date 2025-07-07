@@ -1,5 +1,7 @@
 import { colorToCss } from "@/utils";
 import { FrameLayer } from "@/types";
+import { useStorage } from "@liveblocks/react";
+import LayerComponent from "./LayerComponent";
 
 export default function Frame({
   id,
@@ -10,10 +12,25 @@ export default function Frame({
   layer: FrameLayer;
   onPointerDown: (e: React.PointerEvent, layerId: string) => void;
 }) {
-  const { x, y, width, height, fill, stroke, opacity, cornerRadius = 0, name } = layer;
+  const { x, y, width, height, fill, stroke, opacity, cornerRadius = 0, name, children = [] } = layer;
+  const layers = useStorage((root) => root.layers);
 
   return (
     <g>
+      {/* Clipping mask for frame contents */}
+      <defs>
+        <clipPath id={`frame-clip-${id}`}>
+          <rect
+            x={x}
+            y={y}
+            width={width}
+            height={height}
+            rx={cornerRadius}
+            ry={cornerRadius}
+          />
+        </clipPath>
+      </defs>
+      
       {/* Frame background */}
       <rect
         className="pointer-events-auto"
@@ -33,6 +50,17 @@ export default function Frame({
           transform: `translate(0px, 0px)`,
         }}
       />
+      
+      {/* Frame children (clipped to frame bounds) */}
+      <g clipPath={`url(#frame-clip-${id})`}>
+        {children.map((childId) => (
+          <LayerComponent
+            key={childId}
+            id={childId}
+            onLayerPointerDown={onPointerDown}
+          />
+        ))}
+      </g>
       
       {/* Frame label (name) */}
       {name && (
