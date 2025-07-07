@@ -11,7 +11,11 @@ const Image = memo(
     layer: ImageLayer;
     onPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
-    const { x, y, width, height, opacity, src } = layer;
+    const { x, y, width, height, opacity, src, rotation } = layer;
+
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
     return (
       <foreignObject
@@ -27,6 +31,7 @@ const Image = memo(
           opacity: layer.visible !== false ? opacity / 100 : 0,
           pointerEvents: layer.locked ? "none" : "auto",
         }}
+        transform={rotationTransform}
       >
         {src ? (
           <img

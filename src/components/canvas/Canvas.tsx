@@ -229,6 +229,19 @@ export default function Canvas({
     [history],
   );
 
+  const onRotateHandlePointerDown = useCallback(
+    (initialBounds: XYWH, center: Point, initialAngle: number) => {
+      history.pause();
+      setState({
+        mode: CanvasMode.Rotating,
+        initialBounds,
+        center,
+        initialAngle,
+      });
+    },
+    [history],
+  );
+
   const insertLayer = useMutation(
     (
       { storage, setMyPresence },
@@ -384,6 +397,8 @@ export default function Canvas({
           opacity: 100,
           strokeWidth: 2,
           isDashed: false,
+          dashWidth: 5,
+          dashGap: 5,
           name: getNextLayerName(LayerType.Line),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -400,6 +415,8 @@ export default function Canvas({
           opacity: 100,
           strokeWidth: 2,
           isDashed: false,
+          dashWidth: 5,
+          dashGap: 5,
           arrowStart: false,
           arrowEnd: true,
           arrowSize: 10,
@@ -626,6 +643,39 @@ export default function Canvas({
     [canvasState],
   );
 
+  const rotateSelectedLayer = useMutation(
+    ({ storage, self }, point: Point) => {
+      if (canvasState.mode !== CanvasMode.Rotating) {
+        return;
+      }
+
+      const liveLayers = storage.get("layers");
+
+      if (self.presence.selection.length > 0) {
+        const layer = liveLayers.get(self.presence.selection[0]!);
+        if (layer) {
+          // Calculate angle from center to current mouse position
+          const currentAngle = Math.atan2(
+            point.y - canvasState.center.y,
+            point.x - canvasState.center.x
+          );
+          
+          // Calculate rotation delta
+          const angleDelta = currentAngle - canvasState.initialAngle;
+          const rotationDegrees = (angleDelta * 180) / Math.PI;
+          
+          // Get current layer data and rotation
+          const layerData = layer.toObject();
+          const currentRotation = (layerData as any).rotation || 0;
+          const newRotation = (currentRotation + rotationDegrees) % 360;
+          
+          layer.update({ rotation: newRotation } as any);
+        }
+      }
+    },
+    [canvasState],
+  );
+
   const unselectLayers = useMutation(({ self, setMyPresence }) => {
     if (self.presence.selection.length > 0) {
       setMyPresence({ selection: [] }, { addToHistory: true });
@@ -798,6 +848,8 @@ export default function Canvas({
         continueDrawing(point, e);
       } else if (canvasState.mode === CanvasMode.Resizing) {
         resizeSelectedLayer(point);
+      } else if (canvasState.mode === CanvasMode.Rotating) {
+        rotateSelectedLayer(point);
       }
       setMyPresence({ cursor: point });
     },
@@ -807,6 +859,7 @@ export default function Canvas({
       translateSelectedLayers,
       continueDrawing,
       resizeSelectedLayer,
+      rotateSelectedLayer,
       updateSelectionNet,
       startMultiSelection,
     ],
@@ -834,6 +887,8 @@ export default function Canvas({
         setState({ mode: CanvasMode.Dragging, origin: null });
       } else if (canvasState.mode === CanvasMode.Pencil) {
         insertPath();
+      } else if (canvasState.mode === CanvasMode.Rotating) {
+        setState({ mode: CanvasMode.None });
       } else {
         setState({ mode: CanvasMode.None });
       }
@@ -894,6 +949,7 @@ export default function Canvas({
               ))}
               <SelectionBox
                 onResizeHandlePointerDown={onResizeHandlePointerDown}
+                onRotateHandlePointerDown={onRotateHandlePointerDown}
               />
               {canvasState.mode === CanvasMode.SelectionNet &&
                 canvasState.current != null && (

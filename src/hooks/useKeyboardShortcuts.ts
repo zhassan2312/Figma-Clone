@@ -399,6 +399,31 @@ export default function useKeyboardShortcuts({
     [selection]
   );
 
+  // Move selected layers with arrow keys
+  const moveSelectedLayers = useMutation(
+    ({ storage, setMyPresence }, deltaX: number, deltaY: number) => {
+      if (!selection || selection.length === 0) return;
+      
+      const liveLayers = storage.get("layers");
+      
+      selection.forEach(id => {
+        const layer = liveLayers.get(id);
+        if (layer) {
+          const layerData = layer.toObject();
+          const updatedLayer = {
+            ...layerData,
+            x: layerData.x + deltaX,
+            y: layerData.y + deltaY,
+          };
+          liveLayers.set(id, new LiveObject(updatedLayer));
+        }
+      });
+      
+      console.log("Moved", selection.length, "layers by", deltaX, deltaY);
+    },
+    [selection]
+  );
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Skip if user is typing in an input field
     const activeElement = document.activeElement;
@@ -418,7 +443,7 @@ export default function useKeyboardShortcuts({
       if (isCtrlOrCmd) {
         return ["a", "c", "x", "v", "z", "y", "r", "d", "g", "u", "=", "+", "-", "0"].includes(e.key.toLowerCase());
       }
-      return ["Delete", "Backspace", "Escape", "f", "F2", "r", "e", "t", "p", "v", "h"].includes(e.key);
+      return ["Delete", "Backspace", "Escape", "f", "F2", "r", "e", "t", "p", "v", "h", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key);
     };
 
     if (shouldPreventDefault()) {
@@ -591,6 +616,62 @@ export default function useKeyboardShortcuts({
           ungroupLayers(); // Ctrl+Shift+U: Ungroup
         }
         break;
+
+      case "ArrowUp":
+        {
+          const moveDistance = isShift ? 10 : 1;
+          moveSelectedLayers(0, -moveDistance);
+        }
+        break;
+
+      case "ArrowDown":
+        {
+          const moveDistance = isShift ? 10 : 1;
+          moveSelectedLayers(0, moveDistance);
+        }
+        break;
+
+      case "ArrowLeft":
+        {
+          const moveDistance = isShift ? 10 : 1;
+          moveSelectedLayers(-moveDistance, 0);
+        }
+        break;
+
+      case "ArrowRight":
+        {
+          const moveDistance = isShift ? 10 : 1;
+          moveSelectedLayers(moveDistance, 0);
+        }
+        break;
+
+      // Arrow keys for moving layers
+      case "arrowup":
+      case "arrowdown":
+      case "arrowleft":
+      case "arrowright":
+        if (isCtrlOrCmd) {
+          e.preventDefault();
+          const delta = 10; // Move by 10 units
+          let deltaX = 0;
+          let deltaY = 0;
+          switch (e.key.toLowerCase()) {
+            case "arrowup":
+              deltaY = -delta;
+              break;
+            case "arrowdown":
+              deltaY = delta;
+              break;
+            case "arrowleft":
+              deltaX = -delta;
+              break;
+            case "arrowright":
+              deltaX = delta;
+              break;
+          }
+          moveSelectedLayers(deltaX, deltaY);
+        }
+        break;
     }
   }, [
     selectAllLayers,
@@ -603,6 +684,7 @@ export default function useKeyboardShortcuts({
     groupLayers,
     wrapInFrame,
     ungroupLayers,
+    moveSelectedLayers,
     history,
     selection,
     setCanvasState,

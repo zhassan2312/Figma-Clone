@@ -12,8 +12,12 @@ export default function Frame({
   layer: FrameLayer;
   onPointerDown: (e: React.PointerEvent, layerId: string) => void;
 }) {
-  const { x, y, width, height, fill, stroke, opacity, cornerRadius = 0, name, children = [] } = layer;
+  const { x, y, width, height, fill, stroke, opacity, cornerRadius = 0, name, children = [], rotation } = layer;
   const layers = useStorage((root) => root.layers);
+
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+  const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
   return (
     <g key={id}>
@@ -45,10 +49,12 @@ export default function Frame({
         stroke={stroke ? colorToCss(stroke) : "#999"}
         strokeWidth="1"
         strokeDasharray="none"
-        opacity={opacity}
+        opacity={layer.visible !== false ? opacity / 100 : 0}
         style={{
           transform: `translate(0px, 0px)`,
+          pointerEvents: layer.locked ? "none" : "auto",
         }}
+        transform={rotationTransform}
       />
       
       {/* Frame children (clipped to frame bounds) */}

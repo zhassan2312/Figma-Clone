@@ -11,7 +11,11 @@ const Video = memo(
     layer: VideoLayer;
     onPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
-    const { x, y, width, height, opacity, src, poster, controls = true, autoplay = false, muted = true } = layer;
+    const { x, y, width, height, opacity, src, poster, controls = true, autoplay = false, muted = true, rotation } = layer;
+
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
     return (
       <foreignObject
@@ -27,6 +31,7 @@ const Video = memo(
           opacity: layer.visible !== false ? opacity / 100 : 0,
           pointerEvents: layer.locked ? "none" : "auto",
         }}
+        transform={rotationTransform}
       >
         {src ? (
           <video

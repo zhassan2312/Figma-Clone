@@ -24,11 +24,16 @@ export default function Text({
     opacity,
     fontFamily,
     fontWeight,
+    rotation,
   } = layer;
 
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(text);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+  const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
   const updateText = useMutation(
     ({ storage }, newText: string) => {
@@ -98,6 +103,7 @@ export default function Text({
             stroke="#0b99ff"
             strokeWidth="2"
             className="pointer-events-none opacity-0 group-hover:opacity-100"
+            transform={rotationTransform}
           />
           <text
             onPointerDown={(e) => onPointerDown(e, id)}
@@ -106,9 +112,13 @@ export default function Text({
             fontSize={fontSize}
             fill={colorToCss(fill)}
             stroke={colorToCss(stroke)}
-            opacity={opacity}
+            opacity={layer.visible !== false ? opacity / 100 : 0}
             fontFamily={fontFamily}
             fontWeight={fontWeight}
+            style={{
+              pointerEvents: layer.locked ? "none" : "auto",
+            }}
+            transform={rotationTransform}
           >
             {text}
           </text>

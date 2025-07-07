@@ -35,6 +35,7 @@ export type RectangleLayer = {
   stroke: Color;
   opacity: number;
   cornerRadius?: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   parentId?: string; // ID of parent frame if nested
   visible?: boolean; // Layer visibility (default: true)
@@ -50,6 +51,7 @@ export type EllipseLayer = {
   fill: Color;
   stroke: Color;
   opacity: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   parentId?: string; // ID of parent frame if nested
   visible?: boolean; // Layer visibility (default: true)
@@ -85,6 +87,7 @@ export type TextLayer = {
   fill: Color;
   stroke: Color;
   opacity: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   parentId?: string; // ID of parent frame if nested
   visible?: boolean; // Layer visibility (default: true)
@@ -101,6 +104,7 @@ export type FrameLayer = {
   stroke: Color;
   opacity: number;
   cornerRadius?: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   children?: string[]; // Array of child layer IDs for nesting
   parentId?: string; // ID of parent frame if nested (frames can be nested in frames)
@@ -133,6 +137,7 @@ export type StarLayer = {
   stroke: Color;
   opacity: number;
   cornerRadius?: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   vertices: number; // Number of star vertices (default: 5)
   innerRadius: number; // Inner radius ratio (0-1, default: 0.5)
   name?: string;
@@ -151,6 +156,8 @@ export type LineLayer = {
   opacity: number;
   strokeWidth: number;
   isDashed: boolean;
+  dashWidth?: number; // Dash width (default: 5)
+  dashGap?: number; // Gap between dashes (default: 5)
   name?: string;
   parentId?: string;
   visible?: boolean;
@@ -167,6 +174,8 @@ export type ArrowLayer = {
   opacity: number;
   strokeWidth: number;
   isDashed: boolean;
+  dashWidth?: number; // Dash width (default: 5)
+  dashGap?: number; // Gap between dashes (default: 5)
   arrowStart: boolean; // Arrow head at start
   arrowEnd: boolean; // Arrow head at end
   arrowSize: number; // Size of arrow heads
@@ -185,6 +194,7 @@ export type PolygonLayer = {
   fill: Color;
   stroke: Color;
   opacity: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   sides: number; // Number of polygon sides (default: 6)
   name?: string;
   parentId?: string;
@@ -199,6 +209,7 @@ export type ImageLayer = {
   height: number;
   width: number;
   opacity: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   src: string; // Image URL or data URI
   name?: string;
   parentId?: string;
@@ -213,6 +224,7 @@ export type VideoLayer = {
   height: number;
   width: number;
   opacity: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   src: string; // Video URL
   poster?: string; // Poster image URL
   controls: boolean;
@@ -275,6 +287,12 @@ export type CanvasState =
       corner: Side;
     }
   | {
+      mode: CanvasMode.Rotating;
+      initialBounds: XYWH;
+      center: Point;
+      initialAngle: number;
+    }
+  | {
       mode: CanvasMode.Translating;
       current: Point;
     }
@@ -290,6 +308,7 @@ export enum CanvasMode {
   Inserting,
   Pencil,
   Resizing,
+  Rotating,
   Translating,
   SelectionNet,
   Pressing,

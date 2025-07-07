@@ -8,8 +8,10 @@ const handleWidth = 8;
 const SelectionBox = memo(
   ({
     onResizeHandlePointerDown,
+    onRotateHandlePointerDown,
   }: {
     onResizeHandlePointerDown: (corner: Side, initalBuild: XYWH) => void;
+    onRotateHandlePointerDown: (initialBounds: XYWH, center: { x: number; y: number }, initialAngle: number) => void;
   }) => {
     const soleLayerId = useSelf((me) =>
       me.presence.selection.length === 1 ? me.presence.selection[0] : null,
@@ -62,6 +64,7 @@ const SelectionBox = memo(
         </text>
         {isShowingHandles && (
           <>
+            {/* Resize handles */}
             <rect
               style={{
                 cursor: "nwse-resize",
@@ -164,6 +167,72 @@ const SelectionBox = memo(
               onPointerDown={(e) => {
                 e.stopPropagation();
                 onResizeHandlePointerDown(Side.Bottom, bounds);
+              }}
+            />
+            
+            {/* Rotation handles - circular handles at each corner with rotation icon */}
+            <circle
+              style={{
+                cursor: "grab",
+                transform: `translate(${bounds.x - 16}px, ${bounds.y - 16}px)`,
+              }}
+              className="fill-white stroke-[#0b99ff] stroke-[1px]"
+              cx={handleWidth / 2}
+              cy={handleWidth / 2}
+              r={handleWidth / 2}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+                const initialAngle = Math.atan2(bounds.y - 16 - center.y, bounds.x - 16 - center.x);
+                onRotateHandlePointerDown(bounds, center, initialAngle);
+              }}
+            />
+            <circle
+              style={{
+                cursor: "grab",
+                transform: `translate(${bounds.x + bounds.width + 8}px, ${bounds.y - 16}px)`,
+              }}
+              className="fill-white stroke-[#0b99ff] stroke-[1px]"
+              cx={handleWidth / 2}
+              cy={handleWidth / 2}
+              r={handleWidth / 2}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+                const initialAngle = Math.atan2(bounds.y - 16 - center.y, bounds.x + bounds.width + 8 - center.x);
+                onRotateHandlePointerDown(bounds, center, initialAngle);
+              }}
+            />
+            <circle
+              style={{
+                cursor: "grab",
+                transform: `translate(${bounds.x - 16}px, ${bounds.y + bounds.height + 8}px)`,
+              }}
+              className="fill-white stroke-[#0b99ff] stroke-[1px]"
+              cx={handleWidth / 2}
+              cy={handleWidth / 2}
+              r={handleWidth / 2}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+                const initialAngle = Math.atan2(bounds.y + bounds.height + 8 - center.y, bounds.x - 16 - center.x);
+                onRotateHandlePointerDown(bounds, center, initialAngle);
+              }}
+            />
+            <circle
+              style={{
+                cursor: "grab",
+                transform: `translate(${bounds.x + bounds.width + 8}px, ${bounds.y + bounds.height + 8}px)`,
+              }}
+              className="fill-white stroke-[#0b99ff] stroke-[1px]"
+              cx={handleWidth / 2}
+              cy={handleWidth / 2}
+              r={handleWidth / 2}
+              onPointerDown={(e) => {
+                e.stopPropagation();
+                const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
+                const initialAngle = Math.atan2(bounds.y + bounds.height + 8 - center.y, bounds.x + bounds.width + 8 - center.x);
+                onRotateHandlePointerDown(bounds, center, initialAngle);
               }}
             />
           </>

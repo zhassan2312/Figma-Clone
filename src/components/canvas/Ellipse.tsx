@@ -10,7 +10,11 @@ export default function Ellipse({
   layer: EllipseLayer;
   onPointerDown: (e: React.PointerEvent, layerId: string) => void;
 }) {
-  const { x, y, width, height, fill, stroke, opacity } = layer;
+  const { x, y, width, height, fill, stroke, opacity, rotation } = layer;
+
+  const centerX = x + width / 2;
+  const centerY = y + height / 2;
+  const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
   return (
     <g className="group">
@@ -24,10 +28,15 @@ export default function Ellipse({
         stroke="#0b99ff"
         strokeWidth="4"
         className="pointer-events-none opacity-0 group-hover:opacity-100"
+        transform={rotationTransform}
       />
       <ellipse
         onPointerDown={(e) => onPointerDown(e, id)}
-        style={{ transform: `translate(${x}px, ${y}px)` }}
+        style={{ 
+          transform: `translate(${x}px, ${y}px)`,
+          opacity: layer.visible !== false ? opacity / 100 : 0,
+          pointerEvents: layer.locked ? "none" : "auto",
+        }}
         fill={fill ? colorToCss(fill) : "#CCC"}
         stroke={stroke ? colorToCss(stroke) : "#CCC"}
         cx={width / 2}
@@ -35,7 +44,7 @@ export default function Ellipse({
         rx={width / 2}
         ry={height / 2}
         strokeWidth="1"
-        opacity={`${opacity ?? 100}%`}
+        transform={rotationTransform}
       />
     </g>
   );

@@ -12,7 +12,11 @@ const Polygon = memo(
     layer: PolygonLayer;
     onPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
-    const { x, y, width, height, fill, stroke, opacity, sides = 6 } = layer;
+    const { x, y, width, height, fill, stroke, opacity, sides = 6, rotation } = layer;
+
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
     // Generate polygon points
     const generatePolygonPoints = () => {
@@ -33,6 +37,8 @@ const Polygon = memo(
 
     return (
       <polygon
+      key={id}
+
         className="pointer-events-auto"
         onPointerDown={(e) => onPointerDown(e, id)}
         style={{
@@ -44,6 +50,7 @@ const Polygon = memo(
         fill={fill ? colorToCss(fill) : "transparent"}
         stroke={stroke ? colorToCss(stroke) : "#000"}
         strokeWidth="1"
+        transform={rotationTransform}
       />
     );
   }

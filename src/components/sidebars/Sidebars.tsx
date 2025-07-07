@@ -993,6 +993,40 @@ export default function Sidebars({
                         </label>
                       </div>
                     </div>
+                    {(layer as any).isDashed && (
+                      <div className="flex w-full gap-2">
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Dash Width
+                          </p>
+                          <NumberInput
+                            value={(layer as any).dashWidth || 5}
+                            min={1}
+                            max={50}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "dashWidth", number);
+                            }}
+                            classNames="w-full"
+                            icon={<p>D</p>}
+                          />
+                        </div>
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Dash Gap
+                          </p>
+                          <NumberInput
+                            value={(layer as any).dashGap || 5}
+                            min={1}
+                            max={50}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "dashGap", number);
+                            }}
+                            classNames="w-full"
+                            icon={<p>G</p>}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}
@@ -1080,6 +1114,40 @@ export default function Sidebars({
                         </label>
                       </div>
                     </div>
+                    {(layer as any).isDashed && (
+                      <div className="flex w-full gap-2">
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Dash Width
+                          </p>
+                          <NumberInput
+                            value={(layer as any).dashWidth || 5}
+                            min={1}
+                            max={50}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "dashWidth", number);
+                            }}
+                            classNames="w-full"
+                            icon={<p>D</p>}
+                          />
+                        </div>
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Dash Gap
+                          </p>
+                          <NumberInput
+                            value={(layer as any).dashGap || 5}
+                            min={1}
+                            max={50}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "dashGap", number);
+                            }}
+                            classNames="w-full"
+                            icon={<p>G</p>}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </>
               )}

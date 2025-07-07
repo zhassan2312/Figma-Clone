@@ -21,6 +21,8 @@ const Arrow = memo(
       opacity, 
       strokeWidth = 2, 
       isDashed = false, 
+      dashWidth = 5,
+      dashGap = 5,
       arrowStart = false, 
       arrowEnd = true, 
       arrowSize = 10 
@@ -62,7 +64,7 @@ const Arrow = memo(
           y2={y2}
           stroke={stroke ? colorToCss(stroke) : "#000"}
           strokeWidth={strokeWidth}
-          strokeDasharray={isDashed ? "5,5" : "none"}
+          strokeDasharray={isDashed ? `${dashWidth},${dashGap}` : "none"}
           strokeLinecap="round"
         />
         
