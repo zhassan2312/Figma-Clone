@@ -45,14 +45,19 @@ export async function register(
       password: formData.get("password"),
     });
 
-    const user = await db.user.findUnique({
+    const existingUser = await db.user.findUnique({
       where: {
         email: email,
       },
     });
 
-    if (user) {
-      return "User already exists";
+    if (existingUser) {
+      if (!existingUser.isEmailVerified) {
+        // User exists but email not verified, redirect to verification
+        redirect("/verification/" + encodeURIComponent(email));
+      } else {
+        return "User already exists and is verified. Please sign in.";
+      }
     }
 
     const hash = await bcrypt.hash(password, 10);

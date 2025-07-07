@@ -3,12 +3,21 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { authenticate } from "../actions/auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Page() {
   const [errorMessage, formAction, isPending] = useActionState(
     authenticate,
     undefined,
   );
+  const router = useRouter();
+
+  // If authentication is successful, redirect will be handled by the server action
+  useEffect(() => {
+    // This effect can be used for any client-side redirect logic if needed
+  }, []);
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-white px-4">
       <div className="w-full max-w-sm space-y-6">
@@ -16,7 +25,7 @@ export default function Page() {
           Sign in
         </h1>
         <form action={formAction} className="space-y-4">
-          <input type="hidden" name="redirectTo" value="/dashboard" />
+          <input type="hidden" name="redirectTo" value="/" />
 
           <div className="relative h-fit">
             <input

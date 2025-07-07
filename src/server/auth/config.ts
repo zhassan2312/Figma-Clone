@@ -50,6 +50,12 @@ export const authConfig = {
             },
           });
 
+          if (!user) {
+            return null;
+          }
+
+          // Allow login even if email is not verified
+          // We'll handle verification in the UI
           const passwordMatch = await bcrypt.compare(
             password,
             user?.password ?? "",
@@ -87,5 +93,11 @@ export const authConfig = {
         id: token.sub,
       },
     }),
+    jwt: ({ token, user }) => {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
   },
 } satisfies NextAuthConfig;
