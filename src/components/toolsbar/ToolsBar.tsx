@@ -8,7 +8,6 @@ import PencilButton from "./PencilButton";
 import TextButton from "./TextButton";
 import UndoButton from "./UndoButton";
 import RedoButton from "./RedoButton";
-import { useState, useRef, useCallback, useEffect } from "react";
 
 export default function ToolsBar({
   canvasState,
@@ -33,52 +32,8 @@ export default function ToolsBar({
   undo: () => void;
   redo: () => void;
 }) {
-  }, [position]);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    if (!isDragging) return;
-    
-    const newX = e.clientX - dragStart.x;
-    const newY = e.clientY - dragStart.y;
-    
-    // Keep toolbar within viewport bounds
-    const maxX = window.innerWidth - (toolbarRef.current?.offsetWidth || 0);
-    const maxY = window.innerHeight - (toolbarRef.current?.offsetHeight || 0);
-    
-    setPosition({
-      x: Math.max(0, Math.min(newX, maxX)),
-      y: Math.max(0, Math.min(newY, maxY)),
-    });
-  }, [isDragging, dragStart]);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  // Attach global mouse events for dragging
-  useEffect(() => {
-    if (isDragging) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [isDragging, handleMouseMove, handleMouseUp]);
-
   return (
-    <div 
-      ref={toolbarRef}
-      className={`fixed z-10 flex items-center justify-center rounded-lg bg-white p-2 shadow-[0_0_3px_rgba(0,0,0,0.18)] select-none ${isDragging ? 'cursor-grabbing' : ''}`}
-      style={{
-        left: position.x === 0 ? '50%' : `${position.x}px`,
-        bottom: position.y === 0 ? '16px' : 'auto',
-        top: position.y === 0 ? 'auto' : `${position.y}px`,
-        transform: position.x === 0 ? 'translateX(-50%)' : 'none',
-      }}
-      onMouseDown={handleMouseDown}
-    >
+    <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-10 flex items-center justify-center rounded-lg bg-white p-2 shadow-[0_0_3px_rgba(0,0,0,0.18)]">
       <div className="flex items-center justify-center gap-1">
         <SelectionButton
           isActive={
@@ -141,16 +96,6 @@ export default function ToolsBar({
         
         <div className="w-[1px] self-stretch bg-black/10 mx-1" />
         
-        {/* Drag Handle - visible grip for dragging */}
-        <div className={`toolbar-drag-handle flex items-center justify-center w-6 h-6 hover:bg-gray-100 rounded transition-colors ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}>
-          <div className="flex flex-col gap-[2px] pointer-events-none">
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-          </div>
-        </div>
-        
-        <div className="w-[1px] self-stretch bg-black/10 mx-1" />
         <div className="flex items-center justify-center gap-1">
           <UndoButton onClick={undo} disabled={!canUndo} />
           <RedoButton onClick={redo} disabled={!canRedo} />

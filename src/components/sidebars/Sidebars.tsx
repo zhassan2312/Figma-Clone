@@ -1111,19 +1111,42 @@ export default function Sidebars({
                   <div className="border-b border-gray-200" />
                   <div className="flex flex-col gap-2 p-4">
                     <span className="mb-2 text-[11px] font-medium">Image Properties</span>
-                    <div className="flex flex-col gap-1">
-                      <p className="text-[9px] font-medium text-gray-500">
-                        Source URL
-                      </p>
-                      <input
-                        type="text"
-                        value={(layer as any).src || ""}
-                        onChange={(e) => {
-                          updateLayerProperty(selectedLayer!, "src", e.target.value);
-                        }}
-                        className="rounded border border-gray-300 px-2 py-1 text-xs"
-                        placeholder="https://example.com/image.jpg"
-                      />
+                    <div className="flex flex-col gap-2">
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Upload Image
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const result = event.target?.result as string;
+                                updateLayerProperty(selectedLayer!, "src", result);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Or enter URL
+                        </p>
+                        <input
+                          type="text"
+                          value={(layer as any).src || ""}
+                          onChange={(e) => {
+                            updateLayerProperty(selectedLayer!, "src", e.target.value);
+                          }}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs"
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      </div>
                     </div>
                   </div>
                 </>
@@ -1136,7 +1159,28 @@ export default function Sidebars({
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-1">
                         <p className="text-[9px] font-medium text-gray-500">
-                          Source URL
+                          Upload Video
+                        </p>
+                        <input
+                          type="file"
+                          accept="video/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const result = event.target?.result as string;
+                                updateLayerProperty(selectedLayer!, "src", result);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Or enter Video URL
                         </p>
                         <input
                           type="text"
@@ -1151,6 +1195,27 @@ export default function Sidebars({
                       <div className="flex flex-col gap-1">
                         <p className="text-[9px] font-medium text-gray-500">
                           Poster Image (Optional)
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onload = (event) => {
+                                const result = event.target?.result as string;
+                                updateLayerProperty(selectedLayer!, "poster", result);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                          className="rounded border border-gray-300 px-2 py-1 text-xs"
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Or enter Poster URL
                         </p>
                         <input
                           type="text"

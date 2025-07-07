@@ -34,7 +34,8 @@ const Arrow = memo(
     const generateArrowHead = (atStart: boolean) => {
       const baseX = atStart ? x : x2;
       const baseY = atStart ? y : y2;
-      const direction = atStart ? angle + Math.PI : angle;
+      // For start arrow, point in opposite direction; for end arrow, point in line direction
+      const direction = atStart ? angle : angle + Math.PI;
 
       const point1X = baseX + Math.cos(direction - arrowAngle) * arrowLength;
       const point1Y = baseY + Math.sin(direction - arrowAngle) * arrowLength;
