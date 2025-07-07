@@ -1,6 +1,7 @@
 import { CanvasMode, CanvasState, LayerType } from "~/types";
 import SelectionButton from "./SelectionButton";
 import ShapesSelectionButton from "./ShapesSelectionButton";
+import FrameButton from "./FrameButton";
 import ZoomInButton from "./ZoomInButton";
 import ZoomOutButton from "./ZoomOutButton";
 import PencilButton from "./PencilButton";
@@ -62,6 +63,18 @@ export default function ToolsBar({
           canvasState={canvasState}
           onClick={(layerType) =>
             setCanvasState({ mode: CanvasMode.Inserting, layerType })
+          }
+        />
+        <FrameButton
+          isActive={
+            canvasState.mode === CanvasMode.Inserting &&
+            canvasState.layerType === LayerType.Frame
+          }
+          onClick={() =>
+            setCanvasState({
+              mode: CanvasMode.Inserting,
+              layerType: LayerType.Frame,
+            })
           }
         />
         <PencilButton

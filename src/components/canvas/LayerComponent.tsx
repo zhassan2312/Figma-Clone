@@ -5,6 +5,7 @@ import Rectangle from "./Rectangle";
 import Ellipse from "./Ellipse";
 import Text from "./Text";
 import Path from "./Path";
+import Frame from "./Frame";
 import { colorToCss } from "@/utils";
 
 const LayerComponent = memo(
@@ -44,6 +45,10 @@ const LayerComponent = memo(
       case LayerType.Text:
         return (
           <Text onPointerDown={onLayerPointerDown} id={id} layer={layer} />
+        );
+      case LayerType.Frame:
+        return (
+          <Frame onPointerDown={onLayerPointerDown} id={id} layer={layer} />
         );
       default:
         return null;

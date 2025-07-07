@@ -4,17 +4,21 @@ import { useCallback, useEffect } from "react";
 import { useMutation, useSelf, useStorage } from "@liveblocks/react";
 import { LiveObject } from "@liveblocks/client";
 import { nanoid } from "nanoid";
-import { Layer, LayerType } from "@/types";
+import { Layer, LayerType, CanvasMode } from "@/types";
 import useDeleteLayers from "./useDeleteLayers";
 
 export default function useKeyboardShortcuts({
   history,
   selectAllLayers,
   camera,
+  setCanvasState,
+  startRename,
 }: {
   history: any;
   selectAllLayers: () => void;
   camera: { x: number; y: number; zoom: number };
+  setCanvasState?: (state: any) => void;
+  startRename?: () => void;
 }) {
   const selection = useSelf((me) => me.presence.selection);
   const layers = useStorage((root) => root.layers);
@@ -165,7 +169,7 @@ export default function useKeyboardShortcuts({
       if (isCtrlOrCmd) {
         return ["a", "c", "x", "v", "z", "y", "r", "d"].includes(e.key.toLowerCase());
       }
-      return ["Delete", "Backspace", "Escape"].includes(e.key);
+      return ["Delete", "Backspace", "Escape", "f", "F2"].includes(e.key);
     };
 
     if (shouldPreventDefault()) {
@@ -234,6 +238,21 @@ export default function useKeyboardShortcuts({
       case "escape":
         clearSelection();
         break;
+
+      case "f":
+        if (setCanvasState) {
+          setCanvasState({
+            mode: CanvasMode.Inserting,
+            layerType: LayerType.Frame,
+          });
+        }
+        break;
+
+      case "F2":
+        if (startRename) {
+          startRename();
+        }
+        break;
     }
   }, [
     selectAllLayers,
@@ -244,7 +263,8 @@ export default function useKeyboardShortcuts({
     deleteLayers,
     clearSelection,
     history,
-    selection
+    selection,
+    setCanvasState
   ]);
 
   useEffect(() => {

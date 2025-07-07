@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Base styles */
+body {
+  background-color: white;
+  color: #000;
+}
+
 /* PWA and Offline Support Styles */
 :root {
   --offline-warning-height: 0px;

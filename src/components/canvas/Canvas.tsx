@@ -22,6 +22,7 @@ import {
   CanvasMode,
   CanvasState,
   EllipseLayer,
+  FrameLayer,
   Layer,
   LayerType,
   Point,
@@ -64,6 +65,7 @@ export default function Canvas({
     mode: CanvasMode.None,
   });
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
+  const [isRenamingActive, setIsRenamingActive] = useState(false);
   const history = useHistory();
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
@@ -82,6 +84,8 @@ export default function Canvas({
     history,
     selectAllLayers,
     camera,
+    setCanvasState: setState,
+    startRename: () => setIsRenamingActive(true),
   });
 
   const onLayerPointerDown = useMutation(
@@ -141,7 +145,7 @@ export default function Canvas({
   const insertLayer = useMutation(
     (
       { storage, setMyPresence },
-      layerType: LayerType.Ellipse | LayerType.Rectangle | LayerType.Text,
+      layerType: LayerType.Ellipse | LayerType.Rectangle | LayerType.Text | LayerType.Frame,
       position: Point,
     ) => {
       const liveLayers = storage.get("layers");
@@ -153,6 +157,19 @@ export default function Canvas({
       const layerId = nanoid();
       let layer: LiveObject<Layer> | null = null;
 
+      // Generate unique names by counting existing layers of the same type
+      const getNextLayerName = (type: LayerType): string => {
+        const existingLayers = Array.from(liveLayers.values()).filter(layer => layer.get("type") === type);
+        const baseNames = {
+          [LayerType.Rectangle]: "Rectangle",
+          [LayerType.Ellipse]: "Ellipse", 
+          [LayerType.Text]: "Text",
+          [LayerType.Frame]: "Frame",
+          [LayerType.Path]: "Drawing"
+        };
+        return `${baseNames[type]} ${existingLayers.length + 1}`;
+      };
+
       if (layerType === LayerType.Rectangle) {
         layer = new LiveObject<RectangleLayer>({
           type: LayerType.Rectangle,
@@ -163,6 +180,7 @@ export default function Canvas({
           fill: { r: 217, g: 217, b: 217 },
           stroke: { r: 217, g: 217, b: 217 },
           opacity: 100,
+          name: getNextLayerName(LayerType.Rectangle),
         });
       } else if (layerType === LayerType.Ellipse) {
         layer = new LiveObject<EllipseLayer>({
@@ -174,6 +192,7 @@ export default function Canvas({
           fill: { r: 217, g: 217, b: 217 },
           stroke: { r: 217, g: 217, b: 217 },
           opacity: 100,
+          name: getNextLayerName(LayerType.Ellipse),
         });
       } else if (layerType === LayerType.Text) {
         layer = new LiveObject<TextLayer>({
@@ -189,6 +208,21 @@ export default function Canvas({
           stroke: { r: 217, g: 217, b: 217 },
           fill: { r: 217, g: 217, b: 217 },
           opacity: 100,
+          name: getNextLayerName(LayerType.Text),
+        });
+      } else if (layerType === LayerType.Frame) {
+        layer = new LiveObject<FrameLayer>({
+          type: LayerType.Frame,
+          x: position.x,
+          y: position.y,
+          height: 200,
+          width: 200,
+          fill: { r: 255, g: 255, b: 255 },
+          stroke: { r: 153, g: 153, b: 153 },
+          opacity: 100,
+          cornerRadius: 0,
+          name: getNextLayerName(LayerType.Frame),
+          children: [],
         });
       }
 
@@ -562,6 +596,8 @@ export default function Canvas({
         othersWithAccessToRoom={othersWithAccessToRoom}
         leftIsMinimized={leftIsMinimized}
         setLeftIsMinimized={setLeftIsMinimized}
+        isRenamingActive={isRenamingActive}
+        setIsRenamingActive={setIsRenamingActive}
       />
     </div>
   );

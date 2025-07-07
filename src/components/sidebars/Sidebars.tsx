@@ -1,16 +1,17 @@
 "use client";
 
 import { useMutation, useOthers, useSelf, useStorage } from "@liveblocks/react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { AiOutlineFontSize } from "react-icons/ai";
 import { IoEllipseOutline, IoSquareOutline } from "react-icons/io5";
 import { PiPathLight, PiSidebarSimpleThin } from "react-icons/pi";
+import { RiRectangleLine, RiRoundedCorner } from "react-icons/ri";
 import { Color, LayerType } from "~/types";
 import { colorToCss, connectionIdToColor, hexToRgb } from "~/utils";
 import LayerButton from "./LayerButton";
 import NumberInput from "./NumberInput";
 import { BsCircleHalf } from "react-icons/bs";
-import { RiRoundedCorner } from "react-icons/ri";
 import ColorPicker from "./ColorPicker";
 import Dropdown from "./Dropdown";
 import UserAvatar from "./UserAvatar";
@@ -23,12 +24,16 @@ export default function Sidebars({
   othersWithAccessToRoom,
   leftIsMinimized,
   setLeftIsMinimized,
+  isRenamingActive,
+  setIsRenamingActive,
 }: {
   roomName: string;
   roomId: string;
   othersWithAccessToRoom: User[];
   leftIsMinimized: boolean;
   setLeftIsMinimized: (value: boolean) => void;
+  isRenamingActive?: boolean;
+  setIsRenamingActive?: (value: boolean) => void;
 }) {
   const me = useSelf();
   const others = useOthers();
@@ -72,6 +77,7 @@ export default function Sidebars({
         fontSize?: number;
         fontWeight?: number;
         fontFamily?: string;
+        name?: string;
       },
     ) => {
       if (!selectedLayer) return;
@@ -100,11 +106,92 @@ export default function Sidebars({
           ...(updates.fontFamily !== undefined && {
             fontFamily: updates.fontFamily,
           }),
+          ...(updates.name !== undefined && { name: updates.name }),
         });
       }
     },
     [selectedLayer],
   );
+
+  // Handle layer renaming
+  const handleLayerRename = useMutation(
+    ({ storage }, layerId: string, newName: string) => {
+      const liveLayers = storage.get("layers");
+      const layer = liveLayers.get(layerId);
+      if (layer) {
+        layer.update({ name: newName });
+      }
+    },
+    []
+  );
+
+  const [editingLayerId, setEditingLayerId] = useState<string | null>(null);
+  const [draggedLayerId, setDraggedLayerId] = useState<string | null>(null);
+  const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null);
+
+  // Effect to handle F2 rename activation
+  useEffect(() => {
+    if (isRenamingActive && selectedLayer && setIsRenamingActive) {
+      setEditingLayerId(selectedLayer);
+      setIsRenamingActive(false);
+    }
+  }, [isRenamingActive, selectedLayer, setIsRenamingActive]);
+
+  // Handle layer reordering
+  const reorderLayers = useMutation(
+    ({ storage }, sourceLayerId: string, targetLayerId: string) => {
+      const liveLayerIds = storage.get("layerIds");
+      const currentIds = [...liveLayerIds];
+      
+      const sourceIndex = currentIds.indexOf(sourceLayerId);
+      const targetIndex = currentIds.indexOf(targetLayerId);
+      
+      if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) {
+        return;
+      }
+      
+      // Remove source layer from its current position
+      const [sourceId] = currentIds.splice(sourceIndex, 1);
+      
+      // Insert it at the target position
+      currentIds.splice(targetIndex, 0, sourceId);
+      
+      // Update the layer IDs in storage
+      liveLayerIds.clear();
+      currentIds.forEach(id => liveLayerIds.push(id));
+    },
+    []
+  );
+
+  const handleDragStart = (e: React.DragEvent, layerId: string) => {
+    setDraggedLayerId(layerId);
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', layerId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, layerId: string) => {
+    e.preventDefault();
+    if (draggedLayerId && draggedLayerId !== layerId) {
+      setDragOverLayerId(layerId);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent, targetLayerId: string) => {
+    e.preventDefault();
+    const sourceLayerId = e.dataTransfer.getData('text/plain') || draggedLayerId;
+    
+    if (sourceLayerId && sourceLayerId !== targetLayerId) {
+      reorderLayers(sourceLayerId, targetLayerId);
+    }
+    
+    setDraggedLayerId(null);
+    setDragOverLayerId(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedLayerId(null);
+    setDragOverLayerId(null);
+  };
 
   return (
     <>
@@ -141,11 +228,20 @@ export default function Sidebars({
                     <LayerButton
                       key={id}
                       layerId={id}
-                      text="Rectangle"
+                      text={layer.name || "Rectangle"}
                       isSelected={isSelected ?? false}
                       icon={
                         <IoSquareOutline className="h-3 w-3 text-gray-500" />
                       }
+                      onRename={handleLayerRename}
+                      isEditing={editingLayerId === id}
+                      onEditingChange={(editing) => {
+                        if (!editing) setEditingLayerId(null);
+                      }}
+                      onDragStart={handleDragStart}
+                      onDragOver={(e) => handleDragOver(e, id)}
+                      onDrop={handleDrop}
+                      isDragOver={dragOverLayerId === id}
                     />
                   );
                 } else if (layer?.type === LayerType.Ellipse) {
@@ -153,11 +249,20 @@ export default function Sidebars({
                     <LayerButton
                       key={id}
                       layerId={id}
-                      text="Ellipse"
+                      text={layer.name || "Ellipse"}
                       isSelected={isSelected ?? false}
                       icon={
                         <IoEllipseOutline className="h-3 w-3 text-gray-500" />
                       }
+                      onRename={handleLayerRename}
+                      isEditing={editingLayerId === id}
+                      onEditingChange={(editing) => {
+                        if (!editing) setEditingLayerId(null);
+                      }}
+                      onDragStart={handleDragStart}
+                      onDragOver={(e) => handleDragOver(e, id)}
+                      onDrop={handleDrop}
+                      isDragOver={dragOverLayerId === id}
                     />
                   );
                 } else if (layer?.type === LayerType.Path) {
@@ -165,9 +270,18 @@ export default function Sidebars({
                     <LayerButton
                       key={id}
                       layerId={id}
-                      text="Drawing"
+                      text={layer.name || "Drawing"}
                       isSelected={isSelected ?? false}
                       icon={<PiPathLight className="h-3 w-3 text-gray-500" />}
+                      onRename={handleLayerRename}
+                      isEditing={editingLayerId === id}
+                      onEditingChange={(editing) => {
+                        if (!editing) setEditingLayerId(null);
+                      }}
+                      onDragStart={handleDragStart}
+                      onDragOver={(e) => handleDragOver(e, id)}
+                      onDrop={handleDrop}
+                      isDragOver={dragOverLayerId === id}
                     />
                   );
                 } else if (layer?.type === LayerType.Text) {
@@ -175,11 +289,41 @@ export default function Sidebars({
                     <LayerButton
                       key={id}
                       layerId={id}
-                      text="Text"
+                      text={layer.name || "Text"}
                       isSelected={isSelected ?? false}
                       icon={
                         <AiOutlineFontSize className="h-3 w-3 text-gray-500" />
                       }
+                      onRename={handleLayerRename}
+                      isEditing={editingLayerId === id}
+                      onEditingChange={(editing) => {
+                        if (!editing) setEditingLayerId(null);
+                      }}
+                      onDragStart={handleDragStart}
+                      onDragOver={(e) => handleDragOver(e, id)}
+                      onDrop={handleDrop}
+                      isDragOver={dragOverLayerId === id}
+                    />
+                  );
+                } else if (layer?.type === LayerType.Frame) {
+                  return (
+                    <LayerButton
+                      key={id}
+                      layerId={id}
+                      text={layer.name || "Frame"}
+                      isSelected={isSelected ?? false}
+                      icon={
+                        <RiRectangleLine className="h-3 w-3 text-gray-500" />
+                      }
+                      onRename={handleLayerRename}
+                      isEditing={editingLayerId === id}
+                      onEditingChange={(editing) => {
+                        if (!editing) setEditingLayerId(null);
+                      }}
+                      onDragStart={handleDragStart}
+                      onDragOver={(e) => handleDragOver(e, id)}
+                      onDrop={handleDrop}
+                      isDragOver={dragOverLayerId === id}
                     />
                   );
                 }
@@ -232,6 +376,28 @@ export default function Sidebars({
           <div className="border-b border-gray-200"></div>
           {layer ? (
             <>
+              {layer.type === LayerType.Frame && (
+                <>
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Frame</span>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[9px] font-medium text-gray-500">
+                        Name
+                      </p>
+                      <input
+                        type="text"
+                        value={layer.name || "Frame"}
+                        onChange={(e) => {
+                          updateLayer({ name: e.target.value });
+                        }}
+                        className="rounded border border-gray-300 px-2 py-1 text-xs"
+                        placeholder="Frame name"
+                      />
+                    </div>
+                  </div>
+                  <div className="border-b border-gray-200"></div>
+                </>
+              )}
               <div className="flex flex-col gap-2 p-4">
                 <span className="mb-2 text-[11px] font-medium">Position</span>
                 <div className="flex flex-col gap-1">
@@ -310,7 +476,7 @@ export default function Sidebars({
                       icon={<BsCircleHalf />}
                     />
                   </div>
-                  {layer.type === LayerType.Rectangle && (
+                  {(layer.type === LayerType.Rectangle || layer.type === LayerType.Frame) && (
                     <div className="flex w-1/2 flex-col gap-1">
                       <p className="text-[9px] font-medium text-gray-500">
                         Corner radius

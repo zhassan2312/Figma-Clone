@@ -15,6 +15,7 @@ export enum LayerType {
   Ellipse,
   Path,
   Text,
+  Frame,
 }
 
 export type RectangleLayer = {
@@ -27,6 +28,7 @@ export type RectangleLayer = {
   stroke: Color;
   opacity: number;
   cornerRadius?: number;
+  name?: string;
 };
 
 export type EllipseLayer = {
@@ -38,6 +40,7 @@ export type EllipseLayer = {
   fill: Color;
   stroke: Color;
   opacity: number;
+  name?: string;
 };
 
 export type PathLayer = {
@@ -50,6 +53,7 @@ export type PathLayer = {
   stroke: Color;
   opacity: number;
   points: number[][];
+  name?: string;
 };
 
 export type TextLayer = {
@@ -65,9 +69,24 @@ export type TextLayer = {
   fill: Color;
   stroke: Color;
   opacity: number;
+  name?: string;
 };
 
-export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer;
+export type FrameLayer = {
+  type: LayerType.Frame;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  fill: Color;
+  stroke: Color;
+  opacity: number;
+  cornerRadius?: number;
+  name?: string;
+  children?: string[]; // Array of child layer IDs for nesting
+};
+
+export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer | FrameLayer;
 
 export type Point = {
   x: number;
@@ -107,7 +126,7 @@ export type CanvasState =
     }
   | {
       mode: CanvasMode.Inserting;
-      layerType: LayerType.Rectangle | LayerType.Ellipse | LayerType.Text;
+      layerType: LayerType.Rectangle | LayerType.Ellipse | LayerType.Text | LayerType.Frame;
     }
   | {
       mode: CanvasMode.Pencil;
