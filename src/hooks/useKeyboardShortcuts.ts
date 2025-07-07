@@ -11,12 +11,14 @@ export default function useKeyboardShortcuts({
   history,
   selectAllLayers,
   camera,
+  setCamera,
   setCanvasState,
   startRename,
 }: {
   history: any;
   selectAllLayers: () => void;
   camera: { x: number; y: number; zoom: number };
+  setCamera?: (camera: { x: number; y: number; zoom: number }) => void;
   setCanvasState?: (state: any) => void;
   startRename?: () => void;
 }) {
@@ -167,9 +169,9 @@ export default function useKeyboardShortcuts({
     // Prevent default for handled shortcuts
     const shouldPreventDefault = () => {
       if (isCtrlOrCmd) {
-        return ["a", "c", "x", "v", "z", "y", "r", "d"].includes(e.key.toLowerCase());
+        return ["a", "c", "x", "v", "z", "y", "r", "d", "=", "+", "-", "0"].includes(e.key.toLowerCase());
       }
-      return ["Delete", "Backspace", "Escape", "f", "F2"].includes(e.key);
+      return ["Delete", "Backspace", "Escape", "f", "F2", "r", "e", "t", "p", "v", "h"].includes(e.key);
     };
 
     if (shouldPreventDefault()) {
@@ -197,8 +199,11 @@ export default function useKeyboardShortcuts({
         break;
 
       case "v":
-        if (isCtrlOrCmd) {
+        if (isCtrlOrCmd && !isShift) {
           pasteLayers();
+        } else if (!isCtrlOrCmd && setCanvasState) {
+          // V key for selection tool
+          setCanvasState({ mode: CanvasMode.None });
         }
         break;
 
@@ -227,6 +232,85 @@ export default function useKeyboardShortcuts({
       case "r":
         if (isCtrlOrCmd) {
           history.redo();
+        } else if (setCanvasState) {
+          // R key for rectangle tool
+          setCanvasState({
+            mode: CanvasMode.Inserting,
+            layerType: LayerType.Rectangle,
+          });
+        }
+        break;
+
+      case "e":
+        if (setCanvasState) {
+          // E key for ellipse tool
+          setCanvasState({
+            mode: CanvasMode.Inserting,
+            layerType: LayerType.Ellipse,
+          });
+        }
+        break;
+
+      case "t":
+        if (setCanvasState) {
+          // T key for text tool
+          setCanvasState({
+            mode: CanvasMode.Inserting,
+            layerType: LayerType.Text,
+          });
+        }
+        break;
+
+      case "p":
+        if (setCanvasState) {
+          // P key for pencil/path tool
+          setCanvasState({
+            mode: CanvasMode.Pencil,
+          });
+        }
+        break;
+
+      case "f":
+        if (setCanvasState) {
+          // F key for frame tool
+          setCanvasState({
+            mode: CanvasMode.Inserting,
+            layerType: LayerType.Frame,
+          });
+        }
+        break;
+
+      case "h":
+        if (setCanvasState) {
+          // H key for hand tool
+          setCanvasState({
+            mode: CanvasMode.Dragging,
+            origin: null,
+          });
+        }
+        break;
+
+      case "=":
+      case "+":
+        if (isCtrlOrCmd && setCamera) {
+          // Ctrl/Cmd + Plus for zoom in
+          const newZoom = Math.min(camera.zoom * 1.1, 5);
+          setCamera({ ...camera, zoom: newZoom });
+        }
+        break;
+
+      case "-":
+        if (isCtrlOrCmd && setCamera) {
+          // Ctrl/Cmd + Minus for zoom out
+          const newZoom = Math.max(camera.zoom * 0.9, 0.1);
+          setCamera({ ...camera, zoom: newZoom });
+        }
+        break;
+
+      case "0":
+        if (isCtrlOrCmd && setCamera) {
+          // Ctrl/Cmd + 0 for reset zoom to 100%
+          setCamera({ ...camera, zoom: 1 });
         }
         break;
 
@@ -237,15 +321,6 @@ export default function useKeyboardShortcuts({
 
       case "escape":
         clearSelection();
-        break;
-
-      case "f":
-        if (setCanvasState) {
-          setCanvasState({
-            mode: CanvasMode.Inserting,
-            layerType: LayerType.Frame,
-          });
-        }
         break;
 
       case "F2":
@@ -264,7 +339,9 @@ export default function useKeyboardShortcuts({
     clearSelection,
     history,
     selection,
-    setCanvasState
+    setCanvasState,
+    setCamera,
+    camera
   ]);
 
   useEffect(() => {

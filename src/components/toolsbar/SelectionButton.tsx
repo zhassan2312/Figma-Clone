@@ -36,7 +36,7 @@ export default function SelectionButton({
 
   return (
     <div className="relative flex" ref={menuRef}>
-      <IconButton isActive={isActive} onClick={() => onClick(CanvasMode.None)}>
+      <IconButton isActive={isActive} onClick={() => onClick(CanvasMode.None)} title="Move (V)">
         {canvasMode !== CanvasMode.None &&
           canvasMode !== CanvasMode.Dragging && (
             <BiPointer className="h-5 w-5" />
@@ -55,24 +55,30 @@ export default function SelectionButton({
       {isOpen && (
         <div className="absolute -top-20 mt-1 min-w-[150px] rounded-xl bg-[#1e1e1e] p-2 shadow-lg">
           <button
-            className={`flex w-full items-center rounded-md p-1 text-white hover:bg-blue-500 ${canvasMode === CanvasMode.None ? "bg-blue-500" : ""}`}
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasMode === CanvasMode.None ? "bg-blue-500" : ""}`}
             onClick={() => handleClick(CanvasMode.None)}
           >
-            <span className="w-5 text-xs">
-              {canvasMode === CanvasMode.None && "✓"}
-            </span>
-            <BiPointer className="mr-2 h-4 w-4" />
-            <span className="text-xs">Move</span>
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasMode === CanvasMode.None && "✓"}
+              </span>
+              <BiPointer className="mr-2 h-4 w-4" />
+              <span className="text-xs">Move</span>
+            </div>
+            <span className="text-xs text-gray-400">V</span>
           </button>
           <button
-            className={`flex w-full items-center rounded-md p-1 text-white hover:bg-blue-500 ${canvasMode === CanvasMode.Dragging ? "bg-blue-500" : ""}`}
+            className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasMode === CanvasMode.Dragging ? "bg-blue-500" : ""}`}
             onClick={() => handleClick(CanvasMode.Dragging)}
           >
-            <span className="w-5 text-xs">
-              {canvasMode === CanvasMode.Dragging && "✓"}
-            </span>
-            <RiHand className="mr-2 h-4 w-4" />
-            <span className="text-xs">Hand tool</span>
+            <div className="flex items-center">
+              <span className="w-5 text-xs">
+                {canvasMode === CanvasMode.Dragging && "✓"}
+              </span>
+              <RiHand className="mr-2 h-4 w-4" />
+              <span className="text-xs">Hand tool</span>
+            </div>
+            <span className="text-xs text-gray-400">H</span>
           </button>
         </div>
       )}

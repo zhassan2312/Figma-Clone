@@ -43,6 +43,8 @@ import useKeyboardShortcuts from "@/hooks/useKeyboardShortcuts";
 import SelectionTools from "./SelectionTools";
 import Sidebars from "../sidebars/Sidebars";
 import MultiplayerGuides from "./MultiplayerGuides";
+import ZoomIndicator from "./ZoomIndicator";
+import ToolIndicator from "./ToolIndicator";
 import { User } from "@prisma/client";
 
 const MAX_LAYERS = 100;
@@ -67,6 +69,8 @@ export default function Canvas({
   });
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
   const [isRenamingActive, setIsRenamingActive] = useState(false);
+  const [showZoomIndicator, setShowZoomIndicator] = useState(false);
+  const [showToolIndicator, setShowToolIndicator] = useState(false);
   const history = useHistory();
   const canUndo = useCanUndo();
   const canRedo = useCanRedo();
@@ -85,7 +89,16 @@ export default function Canvas({
     history,
     selectAllLayers,
     camera,
-    setCanvasState: setState,
+    setCamera: (newCamera) => {
+      setCamera(newCamera);
+      setShowZoomIndicator(true);
+      setTimeout(() => setShowZoomIndicator(false), 100);
+    },
+    setCanvasState: (newState) => {
+      setState(newState);
+      setShowToolIndicator(true);
+      setTimeout(() => setShowToolIndicator(false), 100);
+    },
     startRename: () => setIsRenamingActive(true),
   });
 
@@ -490,12 +503,48 @@ export default function Canvas({
   );
 
   const onWheel = useCallback((e: React.WheelEvent) => {
-    setCamera((camera) => ({
-      x: camera.x - e.deltaX,
-      y: camera.y - e.deltaY,
-      zoom: camera.zoom,
-    }));
-  }, []);
+    e.preventDefault();
+    e.stopPropagation();
+
+    // Check if this is a pinch gesture (Ctrl key is held with wheel event on Windows/trackpad)
+    const isZoomGesture = e.ctrlKey;
+
+    if (isZoomGesture) {
+      // Zoom functionality
+      const zoomDelta = -e.deltaY * 0.001; // Negative because wheel up should zoom in
+      const newZoom = Math.min(Math.max(camera.zoom + zoomDelta, 0.1), 5); // Clamp between 0.1x and 5x
+      
+      // Get mouse position for zoom centering
+      const rect = (e.target as Element).getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      
+      // Calculate the point in canvas coordinates before zoom
+      const canvasPointX = (mouseX - camera.x) / camera.zoom;
+      const canvasPointY = (mouseY - camera.y) / camera.zoom;
+      
+      // Calculate new camera position to keep the point under the mouse
+      const newCameraX = mouseX - canvasPointX * newZoom;
+      const newCameraY = mouseY - canvasPointY * newZoom;
+      
+      setCamera({
+        x: newCameraX,
+        y: newCameraY,
+        zoom: newZoom,
+      });
+
+      // Show zoom indicator
+      setShowZoomIndicator(true);
+      setTimeout(() => setShowZoomIndicator(false), 100);
+    } else {
+      // Pan functionality
+      setCamera((camera) => ({
+        x: camera.x - e.deltaX,
+        y: camera.y - e.deltaY,
+        zoom: camera.zoom,
+      }));
+    }
+  }, [camera]);
 
   const onPointerDown = useMutation(
     ({}, e: React.PointerEvent) => {
@@ -649,6 +698,8 @@ export default function Canvas({
 
   return (
     <div className="flex h-screen w-full">
+      <ZoomIndicator zoom={camera.zoom} isVisible={showZoomIndicator} />
+      <ToolIndicator canvasState={canvasState} isVisible={showToolIndicator} />
       <main className="fixed left-0 right-0 h-screen overflow-y-auto">
         <div
           style={{
@@ -717,13 +768,19 @@ export default function Canvas({
         canvasState={canvasState}
         setCanvasState={(newState) => setState(newState)}
         zoomIn={() => {
-          setCamera((camera) => ({ ...camera, zoom: camera.zoom + 0.1 }));
+          const newZoom = Math.min(camera.zoom * 1.1, 5);
+          setCamera((camera) => ({ ...camera, zoom: newZoom }));
+          setShowZoomIndicator(true);
+          setTimeout(() => setShowZoomIndicator(false), 100);
         }}
         zoomOut={() => {
-          setCamera((camera) => ({ ...camera, zoom: camera.zoom - 0.1 }));
+          const newZoom = Math.max(camera.zoom * 0.9, 0.1);
+          setCamera((camera) => ({ ...camera, zoom: newZoom }));
+          setShowZoomIndicator(true);
+          setTimeout(() => setShowZoomIndicator(false), 100);
         }}
-        canZoomIn={camera.zoom < 2}
-        canZoomOut={camera.zoom > 0.5}
+        canZoomIn={camera.zoom < 5}
+        canZoomOut={camera.zoom > 0.1}
         redo={() => history.redo()}
         undo={() => history.undo()}
         canRedo={canRedo}

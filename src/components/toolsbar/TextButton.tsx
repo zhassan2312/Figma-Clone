@@ -9,7 +9,7 @@ export default function TextButton({
   onClick: () => void;
 }) {
   return (
-    <IconButton isActive={isActive} onClick={onClick}>
+    <IconButton isActive={isActive} onClick={onClick} title="Text (T)">
       <AiOutlineFontSize className="h-5 w-5" />
     </IconButton>
   );
