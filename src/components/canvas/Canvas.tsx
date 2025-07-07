@@ -25,6 +25,8 @@ import {
   FrameLayer,
   Layer,
   LayerType,
+  LineLayer,
+  ArrowLayer,
   Point,
   RectangleLayer,
   Side,
@@ -219,9 +221,22 @@ export default function Canvas({
     [camera, canvasState.mode, history],
   );
 
-  const onResizeHandlePointerDown = useCallback(
-    (corner: Side, initialBounds: XYWH) => {
+  const onResizeHandlePointerDown = useMutation(
+    ({ storage, self }, corner: Side, initialBounds: XYWH, initialPoint?: Point) => {
       history.pause();
+      
+      // Get the initial layer data for lines/arrows
+      let initialLayer = null;
+      if (self.presence.selection.length > 0) {
+        const liveLayers = storage.get("layers");
+        const layer = liveLayers.get(self.presence.selection[0]);
+        if (layer) {
+          const layerData = layer.toObject();
+          if (layerData.type === LayerType.Line || layerData.type === LayerType.Arrow) {
+            initialLayer = layerData;
+          }
+        }
+      }
       
       // Check if we're in scaling mode (when the scale tool is active)
       if (activeTool === CanvasMode.Scaling) {
@@ -236,6 +251,8 @@ export default function Canvas({
           mode: CanvasMode.Resizing,
           initialBounds,
           corner,
+          initialPoint,
+          initialLayer,
         });
       }
     },
@@ -420,6 +437,7 @@ export default function Canvas({
           opacity: 100,
           vertices: 5,
           innerRadius: 0.5,
+          rotation: 0,
           name: getNextLayerName(LayerType.Star),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -438,6 +456,7 @@ export default function Canvas({
           isDashed: false,
           dashWidth: 5,
           dashGap: 5,
+          rotation: 0,
           name: getNextLayerName(LayerType.Line),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -459,6 +478,7 @@ export default function Canvas({
           arrowStart: false,
           arrowEnd: true,
           arrowSize: 10,
+          rotation: 0,
           name: getNextLayerName(LayerType.Arrow),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -475,6 +495,7 @@ export default function Canvas({
           stroke: { r: 217, g: 217, b: 217 },
           opacity: 100,
           sides: 6,
+          rotation: 0,
           name: getNextLayerName(LayerType.Polygon),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -489,6 +510,7 @@ export default function Canvas({
           width: 100,
           opacity: 100,
           src: "https://via.placeholder.com/100x100?text=Image",
+          rotation: 0,
           name: getNextLayerName(LayerType.Image),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -506,6 +528,7 @@ export default function Canvas({
           controls: true,
           autoplay: false,
           muted: true,
+          rotation: 0,
           name: getNextLayerName(LayerType.Video),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -662,22 +685,65 @@ export default function Canvas({
         return;
       }
 
-      const bounds = resizeBounds(
-        canvasState.initialBounds,
-        canvasState.corner,
-        point,
-      );
-
       const liveLayers = storage.get("layers");
 
       if (self.presence.selection.length > 0) {
         const layer = liveLayers.get(self.presence.selection[0]!);
         if (layer) {
-          layer.update(bounds);
+          const layerData = layer.toObject();
+          
+          // Special handling for Line and Arrow layers
+          if (layerData.type === LayerType.Line || layerData.type === LayerType.Arrow) {
+            const lineLayer = layerData as LineLayer | ArrowLayer;
+            
+            if (canvasState.corner === Side.Left) {
+              // Moving start point
+              layer.update({ x: point.x, y: point.y } as any);
+            } else if (canvasState.corner === Side.Right) {
+              // Moving end point
+              layer.update({ x2: point.x, y2: point.y } as any);
+            } else if (canvasState.corner === Side.Bottom) {
+              // Moving entire line (middle handle)
+              if (canvasState.initialPoint && canvasState.initialLayer) {
+                // Calculate delta from initial mouse position
+                const deltaX = point.x - canvasState.initialPoint.x;
+                const deltaY = point.y - canvasState.initialPoint.y;
+                
+                // Apply delta to the initial layer positions
+                const initialLineLayer = canvasState.initialLayer as LineLayer | ArrowLayer;
+                layer.update({ 
+                  x: initialLineLayer.x + deltaX, 
+                  y: initialLineLayer.y + deltaY,
+                  x2: initialLineLayer.x2 + deltaX, 
+                  y2: initialLineLayer.y2 + deltaY 
+                } as any);
+              } else {
+                // Fallback: calculate based on current center vs target
+                const actualCenterX = (lineLayer.x + lineLayer.x2) / 2;
+                const actualCenterY = (lineLayer.y + lineLayer.y2) / 2;
+                
+                const deltaX = point.x - actualCenterX;
+                const deltaY = point.y - actualCenterY;
+                
+                layer.update({ 
+                  x: lineLayer.x + deltaX, 
+                  y: lineLayer.y + deltaY,
+                  x2: lineLayer.x2 + deltaX, 
+                  y2: lineLayer.y2 + deltaY 
+                } as any);
+              }
+            }
+          } else {
+            // Standard rectangular resizing for other layer types
+            const bounds = resizeBounds(
+              canvasState.initialBounds,
+              canvasState.corner,
+              point,
+            );
+            layer.update(bounds);
+          }
         }
       }
-
-      // Update layers to set the new width and height of the layer
     },
     [canvasState],
   );
