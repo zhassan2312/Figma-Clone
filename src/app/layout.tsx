@@ -4,6 +4,7 @@ import { Inter } from "next/font/google";
 import { type Metadata, type Viewport } from "next";
 import OfflineWarning from "../components/OfflineWarning";
 import PWAInstaller from "../components/PWAInstaller";
+import SessionProvider from "../components/SessionProvider";
 
 export const metadata: Metadata = {
   title: "Figma",
@@ -38,9 +39,11 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/figma-logo.ico" />
       </head>
       <body className="overflow-hidden overscroll-none">
-        <PWAInstaller />
-        <OfflineWarning />
-        {children}
+        <SessionProvider>
+          <PWAInstaller />
+          <OfflineWarning />
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

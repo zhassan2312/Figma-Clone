@@ -11,10 +11,14 @@ export default async function HomePage() {
     redirect("/signin");
   }
 
-  // If authenticated, check if email is verified
+  // If authenticated, check if user exists and email verification status
   const user = await db.user.findUnique({
     where: { id: session.user.id },
-    select: { isEmailVerified: true, email: true },
+    select: { 
+      isEmailVerified: true, 
+      email: true,
+      emailVerified: true // This is set by NextAuth for OAuth providers
+    },
   });
 
   // If user not found (shouldn't happen but safety check)
@@ -22,8 +26,8 @@ export default async function HomePage() {
     redirect("/signin");
   }
 
-  // If email not verified, show verification prompt
-  if (!user.isEmailVerified) {
+  // If email not verified (for credential users) and not OAuth verified, show verification prompt
+  if (!user.isEmailVerified && !user.emailVerified) {
     return <AuthenticationHandler userEmail={user.email} />;
   }
 

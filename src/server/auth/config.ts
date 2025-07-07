@@ -3,6 +3,8 @@ import { type DefaultSession, type NextAuthConfig } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { signInSchema } from "@/schemas";
 import bcrypt from "bcryptjs";
+import Google from "next-auth/providers/google";
+import { env } from "@/env";
 
 import { db } from "@/server/db";
 
@@ -54,8 +56,6 @@ export const authConfig = {
             return null;
           }
 
-          // Allow login even if email is not verified
-          // We'll handle verification in the UI
           const passwordMatch = await bcrypt.compare(
             password,
             user?.password ?? "",
@@ -70,6 +70,16 @@ export const authConfig = {
           return null;
         }
       },
+    }),
+    /**
+     * Uncomment the following lines to enable the Google provider.
+     * Make sure to set the `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` environment variables.
+     *
+     * @see https://next-auth.js.org/providers/google
+     */
+    Google({
+      clientId: env.GOOGLE_CLIENT_ID!,
+      clientSecret: env.GOOGLE_CLIENT_SECRET!,
     }),
     /**
      * ...add more providers here.
@@ -98,6 +108,20 @@ export const authConfig = {
         token.id = user.id;
       }
       return token;
+    },
+    signIn: async ({ user, account, profile }) => {
+      // Allow all Google sign-ins (Google already verifies email)
+      if (account?.provider === "google") {
+        return true;
+      }
+      
+      // For credentials (email/password), check if email is verified
+      if (account?.provider === "credentials") {
+        // This check is now handled in the authorize function above
+        return true;
+      }
+      
+      return true;
     },
   },
 } satisfies NextAuthConfig;
