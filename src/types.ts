@@ -30,6 +30,8 @@ export type RectangleLayer = {
   cornerRadius?: number;
   name?: string;
   parentId?: string; // ID of parent frame if nested
+  visible?: boolean; // Layer visibility (default: true)
+  locked?: boolean; // Layer lock state (default: false)
 };
 
 export type EllipseLayer = {
@@ -43,6 +45,8 @@ export type EllipseLayer = {
   opacity: number;
   name?: string;
   parentId?: string; // ID of parent frame if nested
+  visible?: boolean; // Layer visibility (default: true)
+  locked?: boolean; // Layer lock state (default: false)
 };
 
 export type PathLayer = {
@@ -57,6 +61,8 @@ export type PathLayer = {
   points: number[][];
   name?: string;
   parentId?: string; // ID of parent frame if nested
+  visible?: boolean; // Layer visibility (default: true)
+  locked?: boolean; // Layer lock state (default: false)
 };
 
 export type TextLayer = {
@@ -74,6 +80,8 @@ export type TextLayer = {
   opacity: number;
   name?: string;
   parentId?: string; // ID of parent frame if nested
+  visible?: boolean; // Layer visibility (default: true)
+  locked?: boolean; // Layer lock state (default: false)
 };
 
 export type FrameLayer = {
@@ -89,6 +97,9 @@ export type FrameLayer = {
   name?: string;
   children?: string[]; // Array of child layer IDs for nesting
   parentId?: string; // ID of parent frame if nested (frames can be nested in frames)
+  visible?: boolean; // Layer visibility (default: true)
+  locked?: boolean; // Layer lock state (default: false)
+  expanded?: boolean; // Whether children are expanded in layers panel (default: true)
 };
 
 export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer | FrameLayer;

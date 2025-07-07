@@ -130,6 +130,79 @@ export default function Sidebars({
   const [draggedLayerId, setDraggedLayerId] = useState<string | null>(null);
   const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null);
 
+  // Handle layer property updates
+  const updateLayerProperty = useMutation(
+    ({ storage }, layerId: string, property: string, value: any) => {
+      const liveLayers = storage.get("layers");
+      const layer = liveLayers.get(layerId);
+      if (layer) {
+        layer.update({ [property]: value });
+      }
+    },
+    []
+  );
+
+  // Toggle layer visibility
+  const toggleLayerVisibility = (layerId: string, visible: boolean) => {
+    updateLayerProperty(layerId, "visible", visible);
+  };
+
+  // Toggle layer lock state
+  const toggleLayerLock = (layerId: string, locked: boolean) => {
+    updateLayerProperty(layerId, "locked", locked);
+  };
+
+  // Custom selection handler that includes frame children
+  const handleLayerSelection = useMutation(
+    ({ storage, setMyPresence }, layerId: string) => {
+      const liveLayers = storage.get("layers");
+      
+      // Helper function to get all children of a frame recursively
+      const getAllChildren = (frameId: string): string[] => {
+        const frameLayer = liveLayers.get(frameId);
+        if (!frameLayer || frameLayer.get("type") !== LayerType.Frame) {
+          return [];
+        }
+        
+        const frameTyped = frameLayer as LiveObject<FrameLayer>;
+        const children = frameTyped.get("children") || [];
+        let allChildren = [...children];
+        
+        // Recursively get children of child frames
+        children.forEach((childId: string) => {
+          const childLayer = liveLayers.get(childId);
+          if (childLayer?.get("type") === LayerType.Frame) {
+            allChildren = allChildren.concat(getAllChildren(childId));
+          }
+        });
+        
+        return allChildren;
+      };
+
+      // Get all layers to select (including frame children)
+      const targetLayer = liveLayers.get(layerId);
+      let layersToSelect = [layerId];
+      
+      // If it's a frame, include all its children
+      if (targetLayer?.get("type") === LayerType.Frame) {
+        const allChildren = getAllChildren(layerId);
+        layersToSelect = layersToSelect.concat(allChildren);
+      }
+      
+      setMyPresence({ selection: layersToSelect }, { addToHistory: true });
+    },
+    []
+  );
+
+  // Toggle frame expansion
+  const toggleFrameExpansion = (layerId: string) => {
+    const layer = layers?.get(layerId);
+    if (layer?.type === LayerType.Frame) {
+      const currentExpanded = (layer as any).expanded ?? true;
+      updateLayerProperty(layerId, "expanded", !currentExpanded);
+    }
+  };
+
   // Effect to handle F2 rename activation
   useEffect(() => {
     if (isRenamingActive && selectedLayer && setIsRenamingActive) {
@@ -274,23 +347,29 @@ export default function Sidebars({
                   if (!layer) return null;
 
                   const LayerButtonWithIcon = ({ icon, name }: { icon: React.ReactNode, name: string }) => (
-                    <div key={layerId} style={{ marginLeft: `${depth * 16}px` }}>
-                      <LayerButton
-                        layerId={layerId}
-                        text={layer.name || name}
-                        isSelected={isSelected ?? false}
-                        icon={icon}
-                        onRename={handleLayerRename}
-                        isEditing={editingLayerId === layerId}
-                        onEditingChange={(editing) => {
-                          if (!editing) setEditingLayerId(null);
-                        }}
-                        onDragStart={handleDragStart}
-                        onDragOver={(e) => handleDragOver(e, layerId)}
-                        onDrop={handleDrop}
-                        isDragOver={dragOverLayerId === layerId}
-                      />
-                    </div>
+                    <LayerButton
+                      key={layerId}
+                      layerId={layerId}
+                      text={layer.name || name}
+                      isSelected={isSelected ?? false}
+                      icon={icon}
+                      onRename={handleLayerRename}
+                      isEditing={editingLayerId === layerId}
+                      onEditingChange={(editing) => {
+                        if (!editing) setEditingLayerId(null);
+                      }}
+                      onDragStart={handleDragStart}
+                      onDragOver={(e) => handleDragOver(e, layerId)}
+                      onDrop={handleDrop}
+                      isDragOver={dragOverLayerId === layerId}
+                      hasChildren={false}
+                      visible={layer.visible ?? true}
+                      locked={layer.locked ?? false}
+                      onToggleVisible={toggleLayerVisibility}
+                      onToggleLocked={toggleLayerLock}
+                      onSelect={handleLayerSelection}
+                      depth={depth}
+                    />
                   );
 
                   let layerElement: React.ReactNode = null;
@@ -326,28 +405,36 @@ export default function Sidebars({
                   } else if (layer.type === LayerType.Frame) {
                     const frameLayer = layer as any; // Type assertion for frame
                     const children = frameLayer.children || [];
+                    const isExpanded = frameLayer.expanded ?? true;
                     
                     layerElement = (
                       <div key={layerId}>
-                        <div style={{ marginLeft: `${depth * 16}px` }}>
-                          <LayerButton
-                            layerId={layerId}
-                            text={layer.name || "Frame"}
-                            isSelected={isSelected ?? false}
-                            icon={<RiRectangleLine className="h-3 w-3 text-gray-500" />}
-                            onRename={handleLayerRename}
-                            isEditing={editingLayerId === layerId}
-                            onEditingChange={(editing) => {
-                              if (!editing) setEditingLayerId(null);
-                            }}
-                            onDragStart={handleDragStart}
-                            onDragOver={(e) => handleDragOver(e, layerId)}
-                            onDrop={handleDrop}
-                            isDragOver={dragOverLayerId === layerId}
-                          />
-                        </div>
-                        {/* Render children */}
-                        {children.map((childId: string) => renderLayerHierarchy(childId, depth + 1))}
+                        <LayerButton
+                          layerId={layerId}
+                          text={layer.name || "Frame"}
+                          isSelected={isSelected ?? false}
+                          icon={<RiRectangleLine className="h-3 w-3 text-gray-500" />}
+                          onRename={handleLayerRename}
+                          isEditing={editingLayerId === layerId}
+                          onEditingChange={(editing) => {
+                            if (!editing) setEditingLayerId(null);
+                          }}
+                          onDragStart={handleDragStart}
+                          onDragOver={(e) => handleDragOver(e, layerId)}
+                          onDrop={handleDrop}
+                          isDragOver={dragOverLayerId === layerId}
+                          hasChildren={children.length > 0}
+                          isExpanded={isExpanded}
+                          onToggleExpanded={toggleFrameExpansion}
+                          visible={layer.visible ?? true}
+                          locked={layer.locked ?? false}
+                          onToggleVisible={toggleLayerVisibility}
+                          onToggleLocked={toggleLayerLock}
+                          onSelect={handleLayerSelection}
+                          depth={depth}
+                        />
+                        {/* Render children only if expanded */}
+                        {isExpanded && children.map((childId: string) => renderLayerHierarchy(childId, depth + 1))}
                       </div>
                     );
                   }

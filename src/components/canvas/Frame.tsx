@@ -53,7 +53,10 @@ export default function Frame({
       
       {/* Frame children (clipped to frame bounds) */}
       <g clipPath={`url(#frame-clip-${id})`}>
-        {children.map((childId) => (
+        {children.filter((childId) => {
+          const childLayer = layers?.get(childId);
+          return childLayer?.visible ?? true; // Only render visible children
+        }).map((childId) => (
           <LayerComponent
             key={childId}
             id={childId}

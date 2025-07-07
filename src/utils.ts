@@ -102,6 +102,8 @@ export function penPointsToPathPayer(
       .map(([x, y, pressure]) => [x - left, y - top, pressure]),
     name,
     parentId,
+    visible: true,
+    locked: false,
   };
 }
 

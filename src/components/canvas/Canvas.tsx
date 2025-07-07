@@ -90,13 +90,56 @@ export default function Canvas({
   });
 
   const onLayerPointerDown = useMutation(
-    ({ self, setMyPresence }, e: React.PointerEvent, layerId: string) => {
+    ({ self, setMyPresence, storage }, e: React.PointerEvent, layerId: string) => {
       if (
         canvasState.mode === CanvasMode.Pencil ||
         canvasState.mode === CanvasMode.Inserting
       ) {
         return;
       }
+
+      // Check if layer is locked
+      const liveLayers = storage.get("layers");
+      const layer = liveLayers.get(layerId);
+      if (layer?.get("locked")) {
+        return; // Don't allow interaction with locked layers
+      }
+
+      // Helper function to get all children of a frame recursively
+      const getAllChildren = (frameId: string): string[] => {
+        const frameLayer = liveLayers.get(frameId);
+        if (!frameLayer || frameLayer.get("type") !== LayerType.Frame) {
+          return [];
+        }
+        
+        const frameTyped = frameLayer as LiveObject<FrameLayer>;
+        const children = frameTyped.get("children") || [];
+        let allChildren = [...children];
+        
+        // Recursively get children of child frames
+        children.forEach(childId => {
+          const childLayer = liveLayers.get(childId);
+          if (childLayer?.get("type") === LayerType.Frame) {
+            allChildren = allChildren.concat(getAllChildren(childId));
+          }
+        });
+        
+        return allChildren;
+      };
+
+      // Helper function to get all layers to select (including frame children)
+      const getLayersToSelect = (targetLayerId: string): string[] => {
+        const targetLayer = liveLayers.get(targetLayerId);
+        let layersToSelect = [targetLayerId];
+        
+        // If it's a frame, include all its children
+        if (targetLayer?.get("type") === LayerType.Frame) {
+          const allChildren = getAllChildren(targetLayerId);
+          layersToSelect = layersToSelect.concat(allChildren);
+        }
+        
+        return layersToSelect;
+      };
 
       history.pause();
       e.stopPropagation();
@@ -106,19 +149,23 @@ export default function Canvas({
       
       if (isShiftHeld) {
         // Shift+click: Add/remove from selection
+        const layersToToggle = getLayersToSelect(layerId);
+        
         if (currentSelection.includes(layerId)) {
-          // Remove from selection if already selected
-          const newSelection = currentSelection.filter(id => id !== layerId);
+          // Remove the layer and its children from selection
+          const newSelection = currentSelection.filter(id => !layersToToggle.includes(id));
           setMyPresence({ selection: newSelection }, { addToHistory: true });
         } else {
-          // Add to selection
-          setMyPresence({ selection: [...currentSelection, layerId] }, { addToHistory: true });
+          // Add the layer and its children to selection
+          const newSelection = [...currentSelection, ...layersToToggle];
+          // Remove duplicates
+          const uniqueSelection = [...new Set(newSelection)];
+          setMyPresence({ selection: uniqueSelection }, { addToHistory: true });
         }
       } else {
-        // Normal click: Select only this layer (unless already in multi-selection)
-        if (!currentSelection.includes(layerId)) {
-          setMyPresence({ selection: [layerId] }, { addToHistory: true });
-        }
+        // Normal click: Select the layer and its children
+        const layersToSelect = getLayersToSelect(layerId);
+        setMyPresence({ selection: layersToSelect }, { addToHistory: true });
       }
 
       if (e.nativeEvent.button === 2) {
@@ -207,6 +254,8 @@ export default function Canvas({
           opacity: 100,
           name: getNextLayerName(LayerType.Rectangle),
           parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
         });
       } else if (layerType === LayerType.Ellipse) {
         layer = new LiveObject<EllipseLayer>({
@@ -220,6 +269,8 @@ export default function Canvas({
           opacity: 100,
           name: getNextLayerName(LayerType.Ellipse),
           parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
         });
       } else if (layerType === LayerType.Text) {
         layer = new LiveObject<TextLayer>({
@@ -237,6 +288,8 @@ export default function Canvas({
           opacity: 100,
           name: getNextLayerName(LayerType.Text),
           parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
         });
       } else if (layerType === LayerType.Frame) {
         layer = new LiveObject<FrameLayer>({
@@ -252,6 +305,9 @@ export default function Canvas({
           name: getNextLayerName(LayerType.Frame),
           children: [],
           parentId: parentFrameId || undefined,
+          visible: true,
+          locked: false,
+          expanded: true,
         });
       }
 
@@ -353,14 +409,17 @@ export default function Canvas({
       };
 
       const liveLayers = storage.get("layers");
+      
+      // Move all selected layers (children will move naturally through selection)
       for (const id of self.presence.selection) {
         const layer = liveLayers.get(id);
-        if (layer) {
-          layer.update({
-            x: layer.get("x") + offset.x,
-            y: layer.get("y") + offset.y,
-          });
-        }
+        if (!layer || layer.get("locked")) continue; // Skip locked layers
+        
+        // Move the layer itself
+        layer.update({
+          x: layer.get("x") + offset.x,
+          y: layer.get("y") + offset.y,
+        });
       }
 
       setState({ mode: CanvasMode.Translating, current: point });
@@ -614,7 +673,7 @@ export default function Canvas({
             >
               {layerIds?.filter(layerId => {
                 const layer = layers?.get(layerId);
-                return !layer?.parentId; // Only render top-level layers
+                return !layer?.parentId && (layer?.visible ?? true); // Only render top-level visible layers
               }).map((layerId) => (
                 <LayerComponent
                   key={layerId}
