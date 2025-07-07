@@ -16,7 +16,7 @@ export default function Frame({
   const layers = useStorage((root) => root.layers);
 
   return (
-    <g>
+    <g key={id}>
       {/* Clipping mask for frame contents */}
       <defs>
         <clipPath id={`frame-clip-${id}`}>

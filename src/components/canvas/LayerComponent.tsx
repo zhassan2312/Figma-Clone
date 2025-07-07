@@ -7,6 +7,12 @@ import Text from "./Text";
 import Path from "./Path";
 import Frame from "./Frame";
 import Group from "./Group";
+import Star from "./Star";
+import Line from "./Line";
+import Arrow from "./Arrow";
+import Polygon from "./Polygon";
+import Image from "./Image";
+import Video from "./Video";
 import { colorToCss } from "@/utils";
 
 const LayerComponent = memo(
@@ -54,6 +60,30 @@ const LayerComponent = memo(
       case LayerType.Group:
         return (
           <Group onLayerPointerDown={onLayerPointerDown} id={id} layer={layer} />
+        );
+      case LayerType.Star:
+        return (
+          <Star onPointerDown={onLayerPointerDown} id={id} layer={layer} />
+        );
+      case LayerType.Line:
+        return (
+          <Line onPointerDown={onLayerPointerDown} id={id} layer={layer} />
+        );
+      case LayerType.Arrow:
+        return (
+          <Arrow onPointerDown={onLayerPointerDown} id={id} layer={layer} />
+        );
+      case LayerType.Polygon:
+        return (
+          <Polygon onPointerDown={onLayerPointerDown} id={id} layer={layer} />
+        );
+      case LayerType.Image:
+        return (
+          <Image onPointerDown={onLayerPointerDown} id={id} layer={layer} />
+        );
+      case LayerType.Video:
+        return (
+          <Video onPointerDown={onLayerPointerDown} id={id} layer={layer} />
         );
       default:
         return null;

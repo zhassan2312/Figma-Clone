@@ -16,7 +16,7 @@ const Group = memo(
     const children = layer.children || [];
 
     return (
-      <g
+      <g key={id}
         onPointerDown={(e: React.PointerEvent) => onLayerPointerDown(e, id)}
         style={{
           opacity: layer.visible !== false ? 1 : 0,
