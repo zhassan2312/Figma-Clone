@@ -157,21 +157,21 @@ export default function Sidebars({
     ({ storage, setMyPresence }, layerId: string) => {
       const liveLayers = storage.get("layers");
       
-      // Helper function to get all children of a frame recursively
+      // Helper function to get all children of a frame or group recursively
       const getAllChildren = (frameId: string): string[] => {
         const frameLayer = liveLayers.get(frameId);
-        if (!frameLayer || frameLayer.get("type") !== LayerType.Frame) {
+        if (!frameLayer || (frameLayer.get("type") !== LayerType.Frame && frameLayer.get("type") !== LayerType.Group)) {
           return [];
         }
         
-        const frameTyped = frameLayer as LiveObject<FrameLayer>;
+        const frameTyped = frameLayer as LiveObject<FrameLayer | any>; // Allow both Frame and Group
         const children = frameTyped.get("children") || [];
         let allChildren = [...children];
         
-        // Recursively get children of child frames
+        // Recursively get children of child frames/groups
         children.forEach((childId: string) => {
           const childLayer = liveLayers.get(childId);
-          if (childLayer?.get("type") === LayerType.Frame) {
+          if (childLayer?.get("type") === LayerType.Frame || childLayer?.get("type") === LayerType.Group) {
             allChildren = allChildren.concat(getAllChildren(childId));
           }
         });
@@ -183,8 +183,8 @@ export default function Sidebars({
       const targetLayer = liveLayers.get(layerId);
       let layersToSelect = [layerId];
       
-      // If it's a frame, include all its children
-      if (targetLayer?.get("type") === LayerType.Frame) {
+      // If it's a frame or group, include all its children
+      if (targetLayer?.get("type") === LayerType.Frame || targetLayer?.get("type") === LayerType.Group) {
         const allChildren = getAllChildren(layerId);
         layersToSelect = layersToSelect.concat(allChildren);
       }
@@ -197,7 +197,7 @@ export default function Sidebars({
   // Toggle frame expansion
   const toggleFrameExpansion = (layerId: string) => {
     const layer = layers?.get(layerId);
-    if (layer?.type === LayerType.Frame) {
+    if (layer?.type === LayerType.Frame || layer?.type === LayerType.Group) {
       const currentExpanded = (layer as any).expanded ?? true;
       updateLayerProperty(layerId, "expanded", !currentExpanded);
     }
@@ -238,14 +238,15 @@ export default function Sidebars({
     []
   );
 
-  // Handle nesting a layer into a frame
+  // Handle nesting a layer into a frame or group
   const nestLayerInFrame = useMutation(
     ({ storage }, childLayerId: string, parentFrameId: string) => {
       const liveLayers = storage.get("layers");
       const childLayer = liveLayers.get(childLayerId);
       const parentFrame = liveLayers.get(parentFrameId);
       
-      if (!childLayer || !parentFrame || parentFrame.get("type") !== LayerType.Frame) {
+      if (!childLayer || !parentFrame || 
+          (parentFrame.get("type") !== LayerType.Frame && parentFrame.get("type") !== LayerType.Group)) {
         return;
       }
 
@@ -253,8 +254,8 @@ export default function Sidebars({
       const oldParentId = childLayer.get("parentId");
       if (oldParentId) {
         const oldParent = liveLayers.get(oldParentId);
-        if (oldParent && oldParent.get("type") === LayerType.Frame) {
-          const oldParentFrame = oldParent as LiveObject<FrameLayer>;
+        if (oldParent && (oldParent.get("type") === LayerType.Frame || oldParent.get("type") === LayerType.Group)) {
+          const oldParentFrame = oldParent as LiveObject<FrameLayer | any>;
           const oldChildren = oldParentFrame.get("children") || [];
           const filteredChildren = oldChildren.filter((id: string) => id !== childLayerId);
           oldParentFrame.update({ children: filteredChildren });
@@ -262,7 +263,7 @@ export default function Sidebars({
       }
 
       // Add to new parent
-      const parentFrameTyped = parentFrame as LiveObject<FrameLayer>;
+      const parentFrameTyped = parentFrame as LiveObject<FrameLayer | any>;
       const currentChildren = parentFrameTyped.get("children") || [];
       parentFrameTyped.update({ children: [...currentChildren, childLayerId] });
       
@@ -292,9 +293,9 @@ export default function Sidebars({
     if (sourceLayerId && sourceLayerId !== targetLayerId) {
       const targetLayer = layers?.get(targetLayerId);
       
-      // Check if we're dropping on a frame (for nesting) or on another layer (for reordering)
-      if (targetLayer?.type === LayerType.Frame) {
-        // Nest the source layer into the target frame
+      // Check if we're dropping on a frame or group (for nesting) or on another layer (for reordering)
+      if (targetLayer?.type === LayerType.Frame || targetLayer?.type === LayerType.Group) {
+        // Nest the source layer into the target frame/group
         nestLayerInFrame(sourceLayerId, targetLayerId);
       } else {
         // Regular reordering
@@ -437,6 +438,41 @@ export default function Sidebars({
                         {isExpanded && children.map((childId: string) => renderLayerHierarchy(childId, depth + 1))}
                       </div>
                     );
+                  } else if (layer.type === LayerType.Group) {
+                    const groupLayer = layer as any; // Type assertion for group
+                    const children = groupLayer.children || [];
+                    const isExpanded = groupLayer.expanded ?? true;
+                    
+                    layerElement = (
+                      <div key={layerId}>
+                        <LayerButton
+                          layerId={layerId}
+                          text={layer.name || "Group"}
+                          isSelected={isSelected ?? false}
+                          icon={<RiRectangleLine className="h-3 w-3 text-gray-400" />}
+                          onRename={handleLayerRename}
+                          isEditing={editingLayerId === layerId}
+                          onEditingChange={(editing) => {
+                            if (!editing) setEditingLayerId(null);
+                          }}
+                          onDragStart={handleDragStart}
+                          onDragOver={(e) => handleDragOver(e, layerId)}
+                          onDrop={handleDrop}
+                          isDragOver={dragOverLayerId === layerId}
+                          hasChildren={children.length > 0}
+                          isExpanded={isExpanded}
+                          onToggleExpanded={toggleFrameExpansion}
+                          visible={layer.visible ?? true}
+                          locked={layer.locked ?? false}
+                          onToggleVisible={toggleLayerVisibility}
+                          onToggleLocked={toggleLayerLock}
+                          onSelect={handleLayerSelection}
+                          depth={depth}
+                        />
+                        {/* Render children only if expanded */}
+                        {isExpanded && children.map((childId: string) => renderLayerHierarchy(childId, depth + 1))}
+                      </div>
+                    );
                   }
 
                   return layerElement;
@@ -521,6 +557,28 @@ export default function Sidebars({
                   <div className="border-b border-gray-200"></div>
                 </>
               )}
+              {layer.type === LayerType.Group && (
+                <>
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Group</span>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[9px] font-medium text-gray-500">
+                        Name
+                      </p>
+                      <input
+                        type="text"
+                        value={layer.name || "Group"}
+                        onChange={(e) => {
+                          updateLayer({ name: e.target.value });
+                        }}
+                        className="rounded border border-gray-300 px-2 py-1 text-xs"
+                        placeholder="Group name"
+                      />
+                    </div>
+                  </div>
+                  <div className="border-b border-gray-200"></div>
+                </>
+              )}
               <div className="flex flex-col gap-2 p-4">
                 <span className="mb-2 text-[11px] font-medium">Position</span>
                 <div className="flex flex-col gap-1">
@@ -580,16 +638,18 @@ export default function Sidebars({
                 </>
               )}
 
-              <div className="border-b border-gray-200"></div>
-              <div className="flex flex-col gap-2 p-4">
-                <span className="mb-2 text-[11px] font-medium">Appearance</span>
+              {layer.type !== LayerType.Group && (
+                <>
+                  <div className="border-b border-gray-200"></div>
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Appearance</span>
                 <div className="flex w-full gap-2">
                   <div className="flex w-1/2 flex-col gap-1">
                     <p className="text-[9px] font-medium text-gray-500">
                       Opacity
                     </p>
                     <NumberInput
-                      value={layer.opacity}
+                      value={("opacity" in layer) ? layer.opacity : 100}
                       min={0}
                       max={100}
                       onChange={(number) => {
@@ -622,7 +682,7 @@ export default function Sidebars({
               <div className="flex flex-col gap-2 p-4">
                 <span className="mb-2 text-[11px] font-medium">Fill</span>
                 <ColorPicker
-                  value={colorToCss(layer.fill)}
+                  value={("fill" in layer) ? colorToCss(layer.fill) : "#ffffff"}
                   onChange={(color) => {
                     updateLayer({ fill: color, stroke: color });
                   }}
@@ -632,7 +692,7 @@ export default function Sidebars({
               <div className="flex flex-col gap-2 p-4">
                 <span className="mb-2 text-[11px] font-medium">Stroke</span>
                 <ColorPicker
-                  value={colorToCss(layer.stroke)}
+                  value={("stroke" in layer) ? colorToCss(layer.stroke) : "#000000"}
                   onChange={(color) => {
                     updateLayer({ stroke: color });
                   }}
@@ -692,6 +752,8 @@ export default function Sidebars({
                       </div>
                     </div>
                   </div>
+                </>
+              )}
                 </>
               )}
             </>

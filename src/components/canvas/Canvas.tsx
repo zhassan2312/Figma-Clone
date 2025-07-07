@@ -118,10 +118,10 @@ export default function Canvas({
         return; // Don't allow interaction with locked layers
       }
 
-      // Helper function to get all children of a frame recursively
+      // Helper function to get all children of a frame or group recursively
       const getAllChildren = (frameId: string): string[] => {
         const frameLayer = liveLayers.get(frameId);
-        if (!frameLayer || frameLayer.get("type") !== LayerType.Frame) {
+        if (!frameLayer || (frameLayer.get("type") !== LayerType.Frame && frameLayer.get("type") !== LayerType.Group)) {
           return [];
         }
         
@@ -129,10 +129,10 @@ export default function Canvas({
         const children = frameTyped.get("children") || [];
         let allChildren = [...children];
         
-        // Recursively get children of child frames
+        // Recursively get children of child frames/groups
         children.forEach(childId => {
           const childLayer = liveLayers.get(childId);
-          if (childLayer?.get("type") === LayerType.Frame) {
+          if (childLayer?.get("type") === LayerType.Frame || childLayer?.get("type") === LayerType.Group) {
             allChildren = allChildren.concat(getAllChildren(childId));
           }
         });
@@ -140,14 +140,40 @@ export default function Canvas({
         return allChildren;
       };
 
-      // Helper function to get all layers to select (including frame children)
-      const getLayersToSelect = (targetLayerId: string): string[] => {
-        const targetLayer = liveLayers.get(targetLayerId);
-        let layersToSelect = [targetLayerId];
+      // Helper function to find the top-most group or frame that contains this layer
+      const findTopMostContainer = (layerId: string): string => {
+        const layer = liveLayers.get(layerId);
+        const parentId = layer?.get("parentId");
         
-        // If it's a frame, include all its children
-        if (targetLayer?.get("type") === LayerType.Frame) {
-          const allChildren = getAllChildren(targetLayerId);
+        if (!parentId) {
+          return layerId; // No parent, this is the top-most
+        }
+        
+        const parent = liveLayers.get(parentId);
+        if (!parent) {
+          return layerId; // Parent doesn't exist
+        }
+        
+        // If parent is a group, we should select the group instead of the individual layer
+        if (parent.get("type") === LayerType.Group) {
+          return findTopMostContainer(parentId); // Recursively find the top-most group
+        }
+        
+        // If parent is a frame, we select the individual layer (frames don't auto-select)
+        return layerId;
+      };
+
+      // Helper function to get all layers to select (including frame/group children)
+      const getLayersToSelect = (targetLayerId: string): string[] => {
+        // First, find the top-most container (group) that should be selected
+        const containerToSelect = findTopMostContainer(targetLayerId);
+        const containerLayer = liveLayers.get(containerToSelect);
+        
+        let layersToSelect = [containerToSelect];
+        
+        // If the container is a frame or group, include all its children
+        if (containerLayer?.get("type") === LayerType.Frame || containerLayer?.get("type") === LayerType.Group) {
+          const allChildren = getAllChildren(containerToSelect);
           layersToSelect = layersToSelect.concat(allChildren);
         }
         
@@ -218,19 +244,19 @@ export default function Canvas({
       const layerId = nanoid();
       let layer: LiveObject<Layer> | null = null;
 
-      // Find if the position is inside a frame
+      // Find if the position is inside a frame or group
       const findContainingFrame = (position: Point): string | null => {
-        // Get all frame layers, check from top to bottom (reverse order)
+        // Get all frame/group layers, check from top to bottom (reverse order)
         const frameIds = Array.from(liveLayerIds).reverse();
         for (const id of frameIds) {
           const layer = liveLayers.get(id);
-          if (layer?.get("type") === LayerType.Frame) {
+          if (layer?.get("type") === LayerType.Frame || layer?.get("type") === LayerType.Group) {
             const x = layer.get("x");
             const y = layer.get("y");
             const width = layer.get("width");
             const height = layer.get("height");
             
-            // Check if position is inside this frame
+            // Check if position is inside this frame/group
             if (position.x >= x && position.x <= x + width &&
                 position.y >= y && position.y <= y + height) {
               return id;
@@ -250,8 +276,9 @@ export default function Canvas({
           [LayerType.Ellipse]: "Ellipse", 
           [LayerType.Text]: "Text",
           [LayerType.Frame]: "Frame",
-          [LayerType.Path]: "Drawing"
-        };
+          [LayerType.Path]: "Drawing",
+          [LayerType.Group]: "Group"
+        } as const;
         return `${baseNames[type]} ${existingLayers.length + 1}`;
       };
 
@@ -328,10 +355,10 @@ export default function Canvas({
         liveLayerIds.push(layerId);
         liveLayers.set(layerId, layer);
 
-        // If the layer has a parent frame, add it to the parent's children
+        // If the layer has a parent frame/group, add it to the parent's children
         if (parentFrameId) {
           const parentFrame = liveLayers.get(parentFrameId);
-          if (parentFrame && parentFrame.get("type") === LayerType.Frame) {
+          if (parentFrame && (parentFrame.get("type") === LayerType.Frame || parentFrame.get("type") === LayerType.Group)) {
             const currentChildren = (parentFrame as LiveObject<FrameLayer>).get("children") || [];
             (parentFrame as LiveObject<FrameLayer>).update({ children: [...currentChildren, layerId] });
           }
@@ -368,7 +395,7 @@ export default function Canvas({
       const frameIds = Array.from(liveLayerIds).reverse();
       for (const id of frameIds) {
         const layer = liveLayers.get(id);
-        if (layer?.get("type") === LayerType.Frame) {
+        if (layer?.get("type") === LayerType.Frame || layer?.get("type") === LayerType.Group) {
           const x = layer.get("x");
           const y = layer.get("y");
           const width = layer.get("width");
@@ -395,10 +422,10 @@ export default function Canvas({
     
     liveLayers.set(id, new LiveObject(pathLayer));
 
-    // If the path has a parent frame, add it to the parent's children
+    // If the path has a parent frame/group, add it to the parent's children
     if (parentFrameId) {
       const parentFrame = liveLayers.get(parentFrameId);
-      if (parentFrame && parentFrame.get("type") === LayerType.Frame) {
+      if (parentFrame && (parentFrame.get("type") === LayerType.Frame || parentFrame.get("type") === LayerType.Group)) {
         const currentChildren = (parentFrame as LiveObject<FrameLayer>).get("children") || [];
         (parentFrame as LiveObject<FrameLayer>).update({ children: [...currentChildren, id] });
       }
@@ -423,17 +450,43 @@ export default function Canvas({
 
       const liveLayers = storage.get("layers");
       
-      // Move all selected layers (children will move naturally through selection)
-      for (const id of self.presence.selection) {
-        const layer = liveLayers.get(id);
-        if (!layer || layer.get("locked")) continue; // Skip locked layers
+      // Helper function to get all layers that should move (including children)
+      const getLayersToMove = (layerId: string, visited = new Set<string>()): string[] => {
+        if (visited.has(layerId)) return [];
+        visited.add(layerId);
         
-        // Move the layer itself
+        const layer = liveLayers.get(layerId);
+        if (!layer) return [];
+        
+        let layersToMove = [layerId];
+        
+        // If this is a group or frame, also move all its children
+        if (layer.get("type") === LayerType.Frame || layer.get("type") === LayerType.Group) {
+          const children = (layer as any).get("children") || [];
+          children.forEach((childId: string) => {
+            layersToMove = layersToMove.concat(getLayersToMove(childId, visited));
+          });
+        }
+        
+        return layersToMove;
+      };
+      
+      // Get all layers that need to be moved
+      const allLayersToMove = new Set<string>();
+      self.presence.selection.forEach(id => {
+        getLayersToMove(id).forEach(layerId => allLayersToMove.add(layerId));
+      });
+      
+      // Move all layers
+      allLayersToMove.forEach(id => {
+        const layer = liveLayers.get(id);
+        if (!layer || layer.get("locked")) return; // Skip locked layers
+        
         layer.update({
           x: layer.get("x") + offset.x,
           y: layer.get("y") + offset.y,
         });
-      }
+      });
 
       setState({ mode: CanvasMode.Translating, current: point });
     },

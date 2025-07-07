@@ -16,6 +16,7 @@ export enum LayerType {
   Path,
   Text,
   Frame,
+  Group,
 }
 
 export type RectangleLayer = {
@@ -102,7 +103,21 @@ export type FrameLayer = {
   expanded?: boolean; // Whether children are expanded in layers panel (default: true)
 };
 
-export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer | FrameLayer;
+export type GroupLayer = {
+  type: LayerType.Group;
+  x: number;
+  y: number;
+  height: number;
+  width: number;
+  name?: string;
+  children?: string[]; // Array of child layer IDs for grouping
+  parentId?: string; // ID of parent frame/group if nested
+  visible?: boolean; // Layer visibility (default: true)
+  locked?: boolean; // Layer lock state (default: false)
+  expanded?: boolean; // Whether children are expanded in layers panel (default: true)
+};
+
+export type Layer = RectangleLayer | EllipseLayer | PathLayer | TextLayer | FrameLayer | GroupLayer;
 
 export type Point = {
   x: number;

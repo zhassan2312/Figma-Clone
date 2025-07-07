@@ -152,6 +152,248 @@ export default function useKeyboardShortcuts({
     []
   );
 
+  // Group selected layers (simple grouping)
+  const groupLayers = useMutation(
+    ({ storage, setMyPresence }) => {
+      if (!selection || selection.length < 2) return;
+      
+      const liveLayers = storage.get("layers");
+      const liveLayerIds = storage.get("layerIds");
+      
+      // Get all selected layers
+      const selectedLayers = selection.map(id => {
+        const layer = liveLayers.get(id);
+        return layer ? { id, data: layer.toObject() } : null;
+      }).filter((item): item is { id: string; data: Layer } => item !== null);
+      
+      if (selectedLayers.length < 2) return;
+      
+      // Calculate bounding box for all selected layers
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      
+      selectedLayers.forEach(({ data }) => {
+        const layerMinX = data.x;
+        const layerMinY = data.y;
+        let layerMaxX, layerMaxY;
+        
+        if (data.type === LayerType.Path) {
+          // For paths, use the bounding box
+          const bounds = (data as any).points.reduce(
+            (acc: { minX: number; minY: number; maxX: number; maxY: number }, point: [number, number]) => ({
+              minX: Math.min(acc.minX, point[0]),
+              minY: Math.min(acc.minY, point[1]),
+              maxX: Math.max(acc.maxX, point[0]),
+              maxY: Math.max(acc.maxY, point[1]),
+            }),
+            { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+          );
+          layerMaxX = data.x + bounds.maxX - bounds.minX;
+          layerMaxY = data.y + bounds.maxY - bounds.minY;
+        } else if (data.type === LayerType.Group) {
+          // For groups, use their bounds
+          layerMaxX = data.x + (data as any).width;
+          layerMaxY = data.y + (data as any).height;
+        } else {
+          layerMaxX = data.x + (data as any).width;
+          layerMaxY = data.y + (data as any).height;
+        }
+        
+        minX = Math.min(minX, layerMinX);
+        minY = Math.min(minY, layerMinY);
+        maxX = Math.max(maxX, layerMaxX);
+        maxY = Math.max(maxY, layerMaxY);
+      });
+      
+      // Create a new group
+      const groupId = nanoid();
+      const groupLayer = {
+        type: LayerType.Group,
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+        name: `Group ${liveLayerIds.length + 1}`,
+        children: selectedLayers.map(({ id }) => id),
+        parentId: undefined,
+        visible: true,
+        locked: false,
+        expanded: true,
+      };
+      
+      // Update selected layers to have the group as parent
+      // Keep their absolute positions - don't make them relative to the group
+      selectedLayers.forEach(({ id, data }) => {
+        const updatedLayer = {
+          ...data,
+          parentId: groupId,
+          // Keep absolute positions
+        };
+        liveLayers.set(id, new LiveObject(updatedLayer));
+      });
+      
+      // Add the group to layers
+      liveLayers.set(groupId, new LiveObject(groupLayer as any));
+      liveLayerIds.push(groupId);
+      
+      // Select the new group
+      setMyPresence({ selection: [groupId] }, { addToHistory: true });
+      
+      console.log("Grouped", selectedLayers.length, "layers into group", groupId);
+    },
+    [selection]
+  );
+
+  // Wrap selected layers in a frame
+  const wrapInFrame = useMutation(
+    ({ storage, setMyPresence }) => {
+      if (!selection || selection.length === 0) return;
+      
+      const liveLayers = storage.get("layers");
+      const liveLayerIds = storage.get("layerIds");
+      
+      // Get all selected layers
+      const selectedLayers = selection.map(id => {
+        const layer = liveLayers.get(id);
+        return layer ? { id, data: layer.toObject() } : null;
+      }).filter((item): item is { id: string; data: Layer } => item !== null);
+      
+      if (selectedLayers.length === 0) return;
+      
+      // Calculate bounding box for all selected layers
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      
+      selectedLayers.forEach(({ data }) => {
+        const layerMinX = data.x;
+        const layerMinY = data.y;
+        let layerMaxX, layerMaxY;
+        
+        if (data.type === LayerType.Path) {
+          // For paths, use the bounding box
+          const bounds = (data as any).points.reduce(
+            (acc: { minX: number; minY: number; maxX: number; maxY: number }, point: [number, number]) => ({
+              minX: Math.min(acc.minX, point[0]),
+              minY: Math.min(acc.minY, point[1]),
+              maxX: Math.max(acc.maxX, point[0]),
+              maxY: Math.max(acc.maxY, point[1]),
+            }),
+            { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+          );
+          layerMaxX = data.x + bounds.maxX - bounds.minX;
+          layerMaxY = data.y + bounds.maxY - bounds.minY;
+        } else if (data.type === LayerType.Group) {
+          // For groups, use their bounds
+          layerMaxX = data.x + (data as any).width;
+          layerMaxY = data.y + (data as any).height;
+        } else {
+          layerMaxX = data.x + (data as any).width;
+          layerMaxY = data.y + (data as any).height;
+        }
+        
+        minX = Math.min(minX, layerMinX);
+        minY = Math.min(minY, layerMinY);
+        maxX = Math.max(maxX, layerMaxX);
+        maxY = Math.max(maxY, layerMaxY);
+      });
+      
+      // Add some padding for frame
+      const padding = 20;
+      const frameX = minX - padding;
+      const frameY = minY - padding;
+      const frameWidth = maxX - minX + padding * 2;
+      const frameHeight = maxY - minY + padding * 2;
+      
+      // Create a new frame
+      const frameId = nanoid();
+      const frameLayer = {
+        type: LayerType.Frame,
+        x: frameX,
+        y: frameY,
+        width: frameWidth,
+        height: frameHeight,
+        fill: { r: 255, g: 255, b: 255, a: 0.1 },
+        stroke: { r: 0, g: 0, b: 0 },
+        opacity: 1,
+        name: `Frame ${liveLayerIds.length + 1}`,
+        children: selectedLayers.map(({ id }) => id),
+        parentId: undefined,
+        visible: true,
+        locked: false,
+        expanded: true,
+      };
+      
+      // Update selected layers to have the frame as parent
+      selectedLayers.forEach(({ id, data }) => {
+        const updatedLayer = {
+          ...data,
+          parentId: frameId,
+        };
+        liveLayers.set(id, new LiveObject(updatedLayer));
+      });
+      
+      // Add the frame to layers
+      liveLayers.set(frameId, new LiveObject(frameLayer as any));
+      liveLayerIds.push(frameId);
+      
+      // Select the new frame
+      setMyPresence({ selection: [frameId] }, { addToHistory: true });
+      
+      console.log("Wrapped", selectedLayers.length, "layers in frame", frameId);
+    },
+    [selection]
+  );
+
+  // Ungroup selected group(s) or frame(s)
+  const ungroupLayers = useMutation(
+    ({ storage, setMyPresence }) => {
+      if (!selection || selection.length === 0) return;
+      
+      const liveLayers = storage.get("layers");
+      const liveLayerIds = storage.get("layerIds");
+      const newSelection: string[] = [];
+      
+      selection.forEach(id => {
+        const layer = liveLayers.get(id);
+        if (!layer) return;
+        
+        const layerData = layer.toObject();
+        
+        // Ungroup both Groups and Frames that have children
+        if ((layerData.type === LayerType.Group || layerData.type === LayerType.Frame) && 
+            layerData.children && layerData.children.length > 0) {
+          // Update all children to remove parent relationship
+          layerData.children.forEach(childId => {
+            const childLayer = liveLayers.get(childId);
+            if (childLayer) {
+              const childData = childLayer.toObject();
+              const updatedChild = {
+                ...childData,
+                parentId: layerData.parentId, // Inherit grandparent if any
+              };
+              liveLayers.set(childId, new LiveObject(updatedChild));
+              newSelection.push(childId);
+            }
+          });
+          
+          // Remove the group/frame layer
+          liveLayers.delete(id);
+          const layerIndex = liveLayerIds.indexOf(id);
+          if (layerIndex > -1) {
+            liveLayerIds.delete(layerIndex);
+          }
+          
+          console.log("Ungrouped", layerData.type === LayerType.Group ? "group" : "frame", id, "with", layerData.children.length, "children");
+        } else {
+          // If it's not a group/frame with children, keep it selected
+          newSelection.push(id);
+        }
+      });
+      
+      // Select the ungrouped layers
+      setMyPresence({ selection: newSelection }, { addToHistory: true });
+    },
+    [selection]
+  );
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Skip if user is typing in an input field
     const activeElement = document.activeElement;
@@ -169,7 +411,7 @@ export default function useKeyboardShortcuts({
     // Prevent default for handled shortcuts
     const shouldPreventDefault = () => {
       if (isCtrlOrCmd) {
-        return ["a", "c", "x", "v", "z", "y", "r", "d", "=", "+", "-", "0"].includes(e.key.toLowerCase());
+        return ["a", "c", "x", "v", "z", "y", "r", "d", "g", "u", "=", "+", "-", "0"].includes(e.key.toLowerCase());
       }
       return ["Delete", "Backspace", "Escape", "f", "F2", "r", "e", "t", "p", "v", "h"].includes(e.key);
     };
@@ -328,6 +570,22 @@ export default function useKeyboardShortcuts({
           startRename();
         }
         break;
+
+      case "g":
+        if (isCtrlOrCmd) {
+          if (isShift) {
+            wrapInFrame(); // Ctrl+Shift+G: Wrap in frame
+          } else {
+            groupLayers(); // Ctrl+G: Group layers
+          }
+        }
+        break;
+
+      case "u":
+        if (isCtrlOrCmd && isShift) {
+          ungroupLayers(); // Ctrl+Shift+U: Ungroup
+        }
+        break;
     }
   }, [
     selectAllLayers,
@@ -337,6 +595,9 @@ export default function useKeyboardShortcuts({
     duplicateLayers,
     deleteLayers,
     clearSelection,
+    groupLayers,
+    wrapInFrame,
+    ungroupLayers,
     history,
     selection,
     setCanvasState,
@@ -357,5 +618,8 @@ export default function useKeyboardShortcuts({
     pasteLayers,
     duplicateLayers,
     clearSelection,
+    groupLayers,
+    wrapInFrame,
+    ungroupLayers,
   };
 }

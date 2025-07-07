@@ -11,31 +11,33 @@ export default function FrameButton({
     <IconButton onClick={onClick} isActive={isActive} title="Frame (F)">
       <svg
         xmlns="http://www.w3.org/2000/svg"
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
+        width="20"
+        height="20"
+        viewBox="0 0 20 20"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="1.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        {/* Frame icon - representing a container/frame */}
-        <rect x="3" y="3" width="18" height="18" rx="2" fill="none" />
-        <path d="M8 8h8v8H8z" fill="none" strokeDasharray="2,2" />
+        {/* Simple rectangle frame with extended corner lines */}
+        <rect x="4" y="4" width="12" height="12" fill="none" />
         
-        {/* Corner indicators */}
-        <rect x="2" y="2" width="4" height="1" fill="currentColor" />
-        <rect x="2" y="2" width="1" height="4" fill="currentColor" />
+        {/* Top-left corner */}
+        <line x1="2" y1="4" x2="6" y2="4" />
+        <line x1="4" y1="2" x2="4" y2="6" />
         
-        <rect x="18" y="2" width="4" height="1" fill="currentColor" />
-        <rect x="21" y="2" width="1" height="4" fill="currentColor" />
+        {/* Top-right corner */}
+        <line x1="14" y1="4" x2="18" y2="4" />
+        <line x1="16" y1="2" x2="16" y2="6" />
         
-        <rect x="2" y="18" width="1" height="4" fill="currentColor" />
-        <rect x="2" y="21" width="4" height="1" fill="currentColor" />
+        {/* Bottom-left corner */}
+        <line x1="2" y1="16" x2="6" y2="16" />
+        <line x1="4" y1="14" x2="4" y2="18" />
         
-        <rect x="21" y="18" width="1" height="4" fill="currentColor" />
-        <rect x="18" y="21" width="4" height="1" fill="currentColor" />
+        {/* Bottom-right corner */}
+        <line x1="14" y1="16" x2="18" y2="16" />
+        <line x1="16" y1="14" x2="16" y2="18" />
       </svg>
     </IconButton>
   );
