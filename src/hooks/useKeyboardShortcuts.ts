@@ -13,6 +13,7 @@ export default function useKeyboardShortcuts({
   camera,
   setCamera,
   setCanvasState,
+  setActiveTool,
   startRename,
 }: {
   history: any;
@@ -20,6 +21,7 @@ export default function useKeyboardShortcuts({
   camera: { x: number; y: number; zoom: number };
   setCamera?: (camera: { x: number; y: number; zoom: number }) => void;
   setCanvasState?: (state: any) => void;
+  setActiveTool?: (tool: CanvasMode) => void;
   startRename?: () => void;
 }) {
   const selection = useSelf((me) => me.presence.selection);
@@ -443,7 +445,7 @@ export default function useKeyboardShortcuts({
       if (isCtrlOrCmd) {
         return ["a", "c", "x", "v", "z", "y", "r", "d", "g", "u", "=", "+", "-", "0"].includes(e.key.toLowerCase());
       }
-      return ["Delete", "Backspace", "Escape", "f", "F2", "r", "e", "t", "p", "v", "h", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key);
+      return ["Delete", "Backspace", "Escape", "f", "F2", "r", "e", "t", "p", "v", "h", "k", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key);
     };
 
     if (shouldPreventDefault()) {
@@ -475,6 +477,17 @@ export default function useKeyboardShortcuts({
           pasteLayers();
         } else if (!isCtrlOrCmd && setCanvasState) {
           // V key for selection tool
+          setCanvasState({ mode: CanvasMode.None });
+          if (setActiveTool) {
+            setActiveTool(CanvasMode.None);
+          }
+        }
+        break;
+
+      case "k":
+        if (!isCtrlOrCmd && setActiveTool && setCanvasState) {
+          // K key for scale tool
+          setActiveTool(CanvasMode.Scaling);
           setCanvasState({ mode: CanvasMode.None });
         }
         break;
@@ -688,6 +701,7 @@ export default function useKeyboardShortcuts({
     history,
     selection,
     setCanvasState,
+    setActiveTool,
     setCamera,
     camera
   ]);

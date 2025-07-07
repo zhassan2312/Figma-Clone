@@ -839,26 +839,49 @@ export default function Sidebars({
                   )}
                 </div>
               </div>
-              <div className="border-b border-gray-200" />
-              <div className="flex flex-col gap-2 p-4">
-                <span className="mb-2 text-[11px] font-medium">Fill</span>
-                <ColorPicker
-                  value={("fill" in layer) ? colorToCss(layer.fill) : "#ffffff"}
-                  onChange={(color) => {
-                    updateLayer({ fill: color, stroke: color });
-                  }}
-                />
-              </div>
-              <div className="border-b border-gray-200" />
-              <div className="flex flex-col gap-2 p-4">
-                <span className="mb-2 text-[11px] font-medium">Stroke</span>
-                <ColorPicker
-                  value={("stroke" in layer) ? colorToCss(layer.stroke) : "#000000"}
-                  onChange={(color) => {
-                    updateLayer({ stroke: color });
-                  }}
-                />
-              </div>
+              
+              {/* Fill section - only for layers that have fill property */}
+              {(layer.type === LayerType.Rectangle || 
+                layer.type === LayerType.Ellipse || 
+                layer.type === LayerType.Frame || 
+                layer.type === LayerType.Star || 
+                layer.type === LayerType.Polygon || 
+                layer.type === LayerType.Text) && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Fill</span>
+                    <ColorPicker
+                      value={("fill" in layer) ? colorToCss(layer.fill) : "#ffffff"}
+                      onChange={(color) => {
+                        updateLayer({ fill: color });
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+              
+              {/* Stroke section - for all shapes including frames */}
+              {(layer.type === LayerType.Rectangle || 
+                layer.type === LayerType.Ellipse || 
+                layer.type === LayerType.Frame || 
+                layer.type === LayerType.Star || 
+                layer.type === LayerType.Line || 
+                layer.type === LayerType.Arrow || 
+                layer.type === LayerType.Polygon) && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Stroke</span>
+                    <ColorPicker
+                      value={("stroke" in layer) ? colorToCss(layer.stroke) : "#000000"}
+                      onChange={(color) => {
+                        updateLayer({ stroke: color });
+                      }}
+                    />
+                  </div>
+                </>
+              )}
               {layer.type === LayerType.Text && (
                 <>
                   <div className="border-b border-gray-200" />

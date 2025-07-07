@@ -110,7 +110,9 @@ export default function ShapesSelectionButton({
         </svg>
       </button>
       {isOpen && (
-        <div className="absolute top-full mt-1 left-0 min-w-[150px] rounded-xl bg-[#1e1e1e] p-2 shadow-lg z-50">
+        <div className="absolute top-full mt-2 left-0 min-w-[150px] rounded-xl bg-[#1e1e1e] p-2 shadow-xl border border-gray-700"
+          style={{ zIndex: 99999 }}
+        >
           <button
             className={`flex w-full items-center justify-between rounded-md p-1 text-white hover:bg-blue-500 ${canvasState.mode === CanvasMode.Inserting && canvasState.layerType === LayerType.Rectangle ? "bg-blue-500" : ""}`}
             onClick={() => handleClick(LayerType.Rectangle)}

@@ -67,6 +67,7 @@ export default function Canvas({
   const [canvasState, setState] = useState<CanvasState>({
     mode: CanvasMode.None,
   });
+  const [activeTool, setActiveTool] = useState<CanvasMode>(CanvasMode.None);
   const [camera, setCamera] = useState<Camera>({ x: 0, y: 0, zoom: 1 });
   const [isRenamingActive, setIsRenamingActive] = useState(false);
   const [showZoomIndicator, setShowZoomIndicator] = useState(false);
@@ -99,6 +100,7 @@ export default function Canvas({
       setShowToolIndicator(true);
       setTimeout(() => setShowToolIndicator(false), 100);
     },
+    setActiveTool,
     startRename: () => setIsRenamingActive(true),
   });
 
@@ -220,23 +222,62 @@ export default function Canvas({
   const onResizeHandlePointerDown = useCallback(
     (corner: Side, initialBounds: XYWH) => {
       history.pause();
-      setState({
-        mode: CanvasMode.Resizing,
-        initialBounds,
-        corner,
-      });
+      
+      // Check if we're in scaling mode (when the scale tool is active)
+      if (activeTool === CanvasMode.Scaling) {
+        setState({
+          mode: CanvasMode.Scaling,
+          initialBounds,
+          corner,
+          initialScale: 1.0,
+        });
+      } else {
+        setState({
+          mode: CanvasMode.Resizing,
+          initialBounds,
+          corner,
+        });
+      }
     },
-    [history],
+    [history, activeTool],
   );
 
-  const onRotateHandlePointerDown = useCallback(
-    (initialBounds: XYWH, center: Point, initialAngle: number) => {
+  const onRotateHandlePointerDown = useMutation(
+    ({ storage }, initialBounds: XYWH, center: Point, initialAngle: number) => {
       history.pause();
+      
+      // Get the initial rotation of the selected layer
+      const self = useSelf();
+      let initialRotation = 0;
+      
+      if (self?.presence?.selection && self.presence.selection.length > 0) {
+        const liveLayers = storage.get("layers");
+        const layer = liveLayers.get(self.presence.selection[0]);
+        if (layer) {
+          const layerData = layer.toObject();
+          initialRotation = (layerData as any).rotation || 0;
+        }
+      }
+      
       setState({
         mode: CanvasMode.Rotating,
         initialBounds,
         center,
         initialAngle,
+        initialRotation,
+      });
+    },
+    [history],
+  );
+
+  const onScaleHandlePointerDown = useCallback(
+    (corner: Side, initialBounds: XYWH) => {
+      history.pause();
+      setState({
+        mode: CanvasMode.Scaling,
+        initialBounds,
+        corner,
+        initialScale: 1.0,
       });
     },
     [history],
@@ -449,7 +490,7 @@ export default function Canvas({
           height: 100,
           width: 100,
           opacity: 100,
-          src: "",
+          src: "https://via.placeholder.com/100x100?text=Image",
           name: getNextLayerName(LayerType.Image),
           parentId: parentFrameId || undefined,
           visible: true,
@@ -463,7 +504,7 @@ export default function Canvas({
           height: 100,
           width: 100,
           opacity: 100,
-          src: "",
+          src: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
           controls: true,
           autoplay: false,
           muted: true,
@@ -654,23 +695,126 @@ export default function Canvas({
       if (self.presence.selection.length > 0) {
         const layer = liveLayers.get(self.presence.selection[0]!);
         if (layer) {
-          // Calculate angle from center to current mouse position
+          // Calculate current angle from center to mouse position
           const currentAngle = Math.atan2(
             point.y - canvasState.center.y,
             point.x - canvasState.center.x
           );
           
-          // Calculate rotation delta
+          // Calculate the difference from initial angle
           const angleDelta = currentAngle - canvasState.initialAngle;
-          const rotationDegrees = (angleDelta * 180) / Math.PI;
+          const deltaInDegrees = (angleDelta * 180) / Math.PI;
           
-          // Get current layer data and rotation
-          const layerData = layer.toObject();
-          const currentRotation = (layerData as any).rotation || 0;
-          const newRotation = (currentRotation + rotationDegrees) % 360;
+          // Apply the delta rotation to the initial rotation
+          const newRotation = ((canvasState.initialRotation + deltaInDegrees) % 360 + 360) % 360;
           
           layer.update({ rotation: newRotation } as any);
         }
+      }
+    },
+    [canvasState],
+  );
+
+  const scaleSelectedLayer = useMutation(
+    ({ storage, self }, point: Point) => {
+      if (canvasState.mode !== CanvasMode.Scaling) {
+        return;
+      }
+
+      const liveLayers = storage.get("layers");
+
+      if (self.presence.selection.length > 0) {
+        // Calculate scale factor based on the corner being dragged
+        const initialBounds = canvasState.initialBounds;
+        const corner = canvasState.corner;
+        
+        let scaleX = 1;
+        let scaleY = 1;
+        
+        // Calculate scale based on corner
+        if (corner === Side.Right || corner === Side.TopRight || corner === Side.BottomRight) {
+          scaleX = Math.max(0.1, (point.x - initialBounds.x) / initialBounds.width);
+        } else if (corner === Side.Left || corner === Side.TopLeft || corner === Side.BottomLeft) {
+          scaleX = Math.max(0.1, (initialBounds.x + initialBounds.width - point.x) / initialBounds.width);
+        }
+        
+        if (corner === Side.Bottom || corner === Side.BottomLeft || corner === Side.BottomRight) {
+          scaleY = Math.max(0.1, (point.y - initialBounds.y) / initialBounds.height);
+        } else if (corner === Side.Top || corner === Side.TopLeft || corner === Side.TopRight) {
+          scaleY = Math.max(0.1, (initialBounds.y + initialBounds.height - point.y) / initialBounds.height);
+        }
+        
+        // Use uniform scaling (maintain aspect ratio)
+        const scale = Math.min(scaleX, scaleY);
+        
+        // Scale the main selected layer and all its children recursively
+        const scaleLayerAndChildren = (layerId: string, scale: number, isRoot = false) => {
+          const layer = liveLayers.get(layerId);
+          if (!layer) return;
+          
+          const layerData = layer.toObject() as any;
+          
+          // For root layer, adjust position based on corner
+          if (isRoot) {
+            let newX = layerData.x;
+            let newY = layerData.y;
+            
+            if (corner === Side.TopLeft) {
+              newX = initialBounds.x + initialBounds.width - (initialBounds.width * scale);
+              newY = initialBounds.y + initialBounds.height - (initialBounds.height * scale);
+            } else if (corner === Side.TopRight) {
+              newX = initialBounds.x;
+              newY = initialBounds.y + initialBounds.height - (initialBounds.height * scale);
+            } else if (corner === Side.BottomLeft) {
+              newX = initialBounds.x + initialBounds.width - (initialBounds.width * scale);
+              newY = initialBounds.y;
+            } else if (corner === Side.BottomRight) {
+              newX = initialBounds.x;
+              newY = initialBounds.y;
+            } else if (corner === Side.Top) {
+              newX = initialBounds.x + (initialBounds.width - initialBounds.width * scale) / 2;
+              newY = initialBounds.y + initialBounds.height - (initialBounds.height * scale);
+            } else if (corner === Side.Bottom) {
+              newX = initialBounds.x + (initialBounds.width - initialBounds.width * scale) / 2;
+              newY = initialBounds.y;
+            } else if (corner === Side.Left) {
+              newX = initialBounds.x + initialBounds.width - (initialBounds.width * scale);
+              newY = initialBounds.y + (initialBounds.height - initialBounds.height * scale) / 2;
+            } else if (corner === Side.Right) {
+              newX = initialBounds.x;
+              newY = initialBounds.y + (initialBounds.height - initialBounds.height * scale) / 2;
+            }
+            
+            layer.update({
+              x: newX,
+              y: newY,
+              width: layerData.width * scale,
+              height: layerData.height * scale,
+            });
+          } else {
+            // For child layers, scale relative to parent
+            layer.update({
+              x: layerData.x * scale,
+              y: layerData.y * scale,
+              width: layerData.width * scale,
+              height: layerData.height * scale,
+            });
+          }
+          
+          // Scale all children if this is a Group or Frame
+          if (layerData.type === LayerType.Group || layerData.type === LayerType.Frame) {
+            // Find child layers by iterating through all layers
+            liveLayers.forEach((childLayer, childId) => {
+              const childData = childLayer.toObject() as any;
+              if (childData.parentId === layerId) {
+                scaleLayerAndChildren(childId, scale, false);
+              }
+            });
+          }
+        };
+        
+        // Scale the main layer and all its children
+        scaleLayerAndChildren(self.presence.selection[0], scale, true);
       }
     },
     [canvasState],
@@ -848,6 +992,8 @@ export default function Canvas({
         continueDrawing(point, e);
       } else if (canvasState.mode === CanvasMode.Resizing) {
         resizeSelectedLayer(point);
+      } else if (canvasState.mode === CanvasMode.Scaling) {
+        scaleSelectedLayer(point);
       } else if (canvasState.mode === CanvasMode.Rotating) {
         rotateSelectedLayer(point);
       }
@@ -859,6 +1005,7 @@ export default function Canvas({
       translateSelectedLayers,
       continueDrawing,
       resizeSelectedLayer,
+      scaleSelectedLayer,
       rotateSelectedLayer,
       updateSelectionNet,
       startMultiSelection,
@@ -950,6 +1097,8 @@ export default function Canvas({
               <SelectionBox
                 onResizeHandlePointerDown={onResizeHandlePointerDown}
                 onRotateHandlePointerDown={onRotateHandlePointerDown}
+                toolMode={activeTool}
+                camera={camera}
               />
               {canvasState.mode === CanvasMode.SelectionNet &&
                 canvasState.current != null && (
@@ -983,6 +1132,8 @@ export default function Canvas({
       <ToolsBar
         canvasState={canvasState}
         setCanvasState={(newState) => setState(newState)}
+        activeTool={activeTool}
+        setActiveTool={setActiveTool}
         zoomIn={() => {
           const newZoom = Math.min(camera.zoom * 1.1, 5);
           setCamera((camera) => ({ ...camera, zoom: newZoom }));

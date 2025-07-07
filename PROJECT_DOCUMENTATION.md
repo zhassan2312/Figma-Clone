@@ -17,11 +17,14 @@
 
 ### Core Features
 - **Real-time Collaboration**: Multiple users can work on the same canvas simultaneously
-- **Drawing Tools**: Rectangle, Ellipse, Text, and Pencil drawing tools
+- **Drawing Tools**: Rectangle, Ellipse, Text, Star, Line, Arrow, Polygon, Image, Video, and Pencil drawing tools
+- **Advanced Shape Controls**: Frame wrapping, grouping/ungrouping, rotation handles and property controls
+- **Transform Tools**: Move tool (V), Scale tool (K), Hand tool (H) with keyboard shortcuts
+- **Layer Management**: Create, select, move, delete, rotate, and scale layers with keyboard arrow key movement
 - **User Authentication**: Secure registration and login system
-- **Room Management**: Create and manage collaborative workspaces
+- **Room Management**: Create and manage collaborative workspaces with editable room names
 - **Live Cursors**: See other users' cursors and selections in real-time
-- **Layer Management**: Create, select, move, and delete layers
+- **File Upload**: Support for image and video layer insertion
 - **Undo/Redo**: History management for user actions
 
 ### Technical Objectives
@@ -35,6 +38,27 @@
 - Designers and design teams
 - Product managers and stakeholders
 - Anyone needing collaborative design tools
+
+### Keyboard Shortcuts
+- **V** - Move/Selection tool
+- **K** - Scale tool
+- **H** - Hand tool (pan canvas)
+- **R** - Rectangle tool
+- **E** - Ellipse tool
+- **T** - Text tool
+- **F** - Frame tool
+- **P** - Pencil tool
+- **Arrow Keys** - Move selected layers (1px, 10px with Shift)
+- **Ctrl/Cmd + A** - Select all layers
+- **Ctrl/Cmd + C** - Copy selected layers
+- **Ctrl/Cmd + X** - Cut selected layers
+- **Ctrl/Cmd + V** - Paste layers
+- **Ctrl/Cmd + D** - Duplicate selected layers
+- **Ctrl/Cmd + Z** - Undo
+- **Ctrl/Cmd + Y** - Redo
+- **Ctrl/Cmd + G** - Group selected layers
+- **Ctrl/Cmd + U** - Ungroup selected layers
+- **Delete/Backspace** - Delete selected layers
 
 ---
 

@@ -255,6 +255,10 @@ export enum Side {
   Bottom = 2,
   Left = 4,
   Right = 8,
+  TopLeft = 5,    // Top + Left
+  TopRight = 9,   // Top + Right
+  BottomLeft = 6, // Bottom + Left
+  BottomRight = 10, // Bottom + Right
 }
 
 export type CanvasState =
@@ -287,10 +291,17 @@ export type CanvasState =
       corner: Side;
     }
   | {
+      mode: CanvasMode.Scaling;
+      initialBounds: XYWH;
+      corner: Side;
+      initialScale: number;
+    }
+  | {
       mode: CanvasMode.Rotating;
       initialBounds: XYWH;
       center: Point;
       initialAngle: number;
+      initialRotation: number;
     }
   | {
       mode: CanvasMode.Translating;
@@ -308,6 +319,7 @@ export enum CanvasMode {
   Inserting,
   Pencil,
   Resizing,
+  Scaling,
   Rotating,
   Translating,
   SelectionNet,

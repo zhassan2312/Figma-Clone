@@ -1,17 +1,19 @@
 import { useSelf, useStorage } from "@liveblocks/react";
 import { memo, useEffect, useRef, useState } from "react";
 import useSelectionBounds from "@/hooks/useSelectionBounds";
-import { LayerType, Side, XYWH } from "@/types";
-
-const handleWidth = 8;
+import { CanvasMode, LayerType, Side, XYWH } from "@/types";
 
 const SelectionBox = memo(
   ({
     onResizeHandlePointerDown,
     onRotateHandlePointerDown,
+    toolMode,
+    camera,
   }: {
     onResizeHandlePointerDown: (corner: Side, initalBuild: XYWH) => void;
     onRotateHandlePointerDown: (initialBounds: XYWH, center: { x: number; y: number }, initialAngle: number) => void;
+    toolMode?: CanvasMode;
+    camera?: { x: number; y: number; zoom: number };
   }) => {
     const soleLayerId = useSelf((me) =>
       me.presence.selection.length === 1 ? me.presence.selection[0] : null,
@@ -26,6 +28,10 @@ const SelectionBox = memo(
     const textRef = useRef<SVGTextElement>(null);
     const [textWidth, setTextWidth] = useState(0);
     const padding = 16;
+
+    // Adjust handle width based on zoom level
+    const handleWidth = Math.max(6, Math.min(12, 8 / (camera?.zoom || 1)));
+    const rotateHandleDistance = Math.max(12, 16 / (camera?.zoom || 1));
 
     useEffect(() => {
       if (textRef.current) {
@@ -170,11 +176,11 @@ const SelectionBox = memo(
               }}
             />
             
-            {/* Rotation handles - circular handles at each corner with rotation icon */}
+            {/* Rotation handles - circular handles at each corner with rotation cursor */}
             <circle
               style={{
-                cursor: "grab",
-                transform: `translate(${bounds.x - 16}px, ${bounds.y - 16}px)`,
+                cursor: "crosshair",
+                transform: `translate(${bounds.x - rotateHandleDistance}px, ${bounds.y - rotateHandleDistance}px)`,
               }}
               className="fill-white stroke-[#0b99ff] stroke-[1px]"
               cx={handleWidth / 2}
@@ -183,14 +189,14 @@ const SelectionBox = memo(
               onPointerDown={(e) => {
                 e.stopPropagation();
                 const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-                const initialAngle = Math.atan2(bounds.y - 16 - center.y, bounds.x - 16 - center.x);
+                const initialAngle = Math.atan2(bounds.y - rotateHandleDistance - center.y, bounds.x - rotateHandleDistance - center.x);
                 onRotateHandlePointerDown(bounds, center, initialAngle);
               }}
             />
             <circle
               style={{
-                cursor: "grab",
-                transform: `translate(${bounds.x + bounds.width + 8}px, ${bounds.y - 16}px)`,
+                cursor: "crosshair",
+                transform: `translate(${bounds.x + bounds.width + rotateHandleDistance - handleWidth}px, ${bounds.y - rotateHandleDistance}px)`,
               }}
               className="fill-white stroke-[#0b99ff] stroke-[1px]"
               cx={handleWidth / 2}
@@ -199,14 +205,14 @@ const SelectionBox = memo(
               onPointerDown={(e) => {
                 e.stopPropagation();
                 const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-                const initialAngle = Math.atan2(bounds.y - 16 - center.y, bounds.x + bounds.width + 8 - center.x);
+                const initialAngle = Math.atan2(bounds.y - rotateHandleDistance - center.y, bounds.x + bounds.width + rotateHandleDistance - handleWidth - center.x);
                 onRotateHandlePointerDown(bounds, center, initialAngle);
               }}
             />
             <circle
               style={{
-                cursor: "grab",
-                transform: `translate(${bounds.x - 16}px, ${bounds.y + bounds.height + 8}px)`,
+                cursor: "crosshair",
+                transform: `translate(${bounds.x - rotateHandleDistance}px, ${bounds.y + bounds.height + rotateHandleDistance - handleWidth}px)`,
               }}
               className="fill-white stroke-[#0b99ff] stroke-[1px]"
               cx={handleWidth / 2}
@@ -215,14 +221,14 @@ const SelectionBox = memo(
               onPointerDown={(e) => {
                 e.stopPropagation();
                 const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-                const initialAngle = Math.atan2(bounds.y + bounds.height + 8 - center.y, bounds.x - 16 - center.x);
+                const initialAngle = Math.atan2(bounds.y + bounds.height + rotateHandleDistance - handleWidth - center.y, bounds.x - rotateHandleDistance - center.x);
                 onRotateHandlePointerDown(bounds, center, initialAngle);
               }}
             />
             <circle
               style={{
-                cursor: "grab",
-                transform: `translate(${bounds.x + bounds.width + 8}px, ${bounds.y + bounds.height + 8}px)`,
+                cursor: "crosshair",
+                transform: `translate(${bounds.x + bounds.width + rotateHandleDistance - handleWidth}px, ${bounds.y + bounds.height + rotateHandleDistance - handleWidth}px)`,
               }}
               className="fill-white stroke-[#0b99ff] stroke-[1px]"
               cx={handleWidth / 2}
@@ -231,7 +237,7 @@ const SelectionBox = memo(
               onPointerDown={(e) => {
                 e.stopPropagation();
                 const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
-                const initialAngle = Math.atan2(bounds.y + bounds.height + 8 - center.y, bounds.x + bounds.width + 8 - center.x);
+                const initialAngle = Math.atan2(bounds.y + bounds.height + rotateHandleDistance - handleWidth - center.y, bounds.x + bounds.width + rotateHandleDistance - handleWidth - center.x);
                 onRotateHandlePointerDown(bounds, center, initialAngle);
               }}
             />

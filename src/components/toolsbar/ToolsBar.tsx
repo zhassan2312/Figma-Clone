@@ -12,6 +12,8 @@ import RedoButton from "./RedoButton";
 export default function ToolsBar({
   canvasState,
   setCanvasState,
+  activeTool,
+  setActiveTool,
   zoomIn,
   zoomOut,
   canZoomIn,
@@ -23,6 +25,8 @@ export default function ToolsBar({
 }: {
   canvasState: CanvasState;
   setCanvasState: (newState: CanvasState) => void;
+  activeTool: CanvasMode;
+  setActiveTool: (tool: CanvasMode) => void;
   zoomIn: () => void;
   zoomOut: () => void;
   canZoomIn: boolean;
@@ -42,16 +46,18 @@ export default function ToolsBar({
             canvasState.mode === CanvasMode.SelectionNet ||
             canvasState.mode === CanvasMode.Pressing ||
             canvasState.mode === CanvasMode.Resizing ||
+            canvasState.mode === CanvasMode.Scaling ||
             canvasState.mode === CanvasMode.Dragging
           }
-          canvasMode={canvasState.mode}
-          onClick={(canvasMode) =>
+          canvasMode={activeTool}
+          onClick={(canvasMode) => {
+            setActiveTool(canvasMode);
             setCanvasState(
               canvasMode === CanvasMode.Dragging
-                ? { mode: canvasMode, origin: null }
-                : { mode: canvasMode },
-            )
-          }
+                ? { mode: CanvasMode.Dragging, origin: null }
+                : { mode: CanvasMode.None },
+            );
+          }}
         />
         <ShapesSelectionButton
           isActive={
