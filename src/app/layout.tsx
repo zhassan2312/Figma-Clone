@@ -1,12 +1,23 @@
 import "../styles/globals.css";
 
 import { Inter } from "next/font/google";
-import { type Metadata } from "next";
+import { type Metadata, type Viewport } from "next";
+import OfflineWarning from "../components/OfflineWarning";
+import PWAInstaller from "../components/PWAInstaller";
 
 export const metadata: Metadata = {
   title: "Figma",
   description: "Figma",
   icons: [{ rel: "icon", url: "/figma-logo.ico" }],
+  manifest: "/manifest.json",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#000000",
 };
 
 const inter = Inter({
@@ -19,7 +30,18 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className={`${inter.className}`}>
-      <body className="overflow-hidden overscroll-none">{children}</body>
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Figma" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <link rel="apple-touch-icon" href="/figma-logo.ico" />
+      </head>
+      <body className="overflow-hidden overscroll-none">
+        <PWAInstaller />
+        <OfflineWarning />
+        {children}
+      </body>
     </html>
   );
 }

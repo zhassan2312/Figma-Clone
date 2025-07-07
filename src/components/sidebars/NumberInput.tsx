@@ -68,12 +68,12 @@ const NumberInput = ({
               .children
           }
         </p>
-      ) : (
-        React.cloneElement(icon as React.ReactElement, {
+      ) : React.isValidElement(icon) ? (
+        React.cloneElement(icon as React.ReactElement<any>, {
           className:
             "absolute left-1.5 top-[50%] h-3 w-3 -translate-y-1/2 text-gray-400",
         })
-      )}
+      ) : null}
     </div>
   );
 };

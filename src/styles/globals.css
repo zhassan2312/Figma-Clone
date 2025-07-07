@@ -1,1 +1,87 @@
 @import "tailwindcss";
+
+/* PWA and Offline Support Styles */
+:root {
+  --offline-warning-height: 0px;
+}
+
+/* Adjust main content when offline warning is visible */
+body {
+  padding-top: var(--offline-warning-height);
+  transition: padding-top 0.3s ease;
+}
+
+/* PWA Install Prompt Styles */
+.pwa-install-prompt {
+  position: fixed;
+  bottom: 1rem;
+  right: 1rem;
+  background-color: #2563eb;
+  color: white;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.pwa-install-prompt button {
+  background-color: #1e40af;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  border: none;
+  color: white;
+  cursor: pointer;
+}
+
+.pwa-install-prompt button:hover {
+  background-color: #1e3a8a;
+}
+
+/* Offline content styles */
+.offline-content {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* Service Worker Update Available */
+.sw-update-available {
+  position: fixed;
+  bottom: 1rem;
+  left: 1rem;
+  background-color: #16a34a;
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  z-index: 50;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Responsive adjustments for mobile PWA */
+@media (max-width: 768px) {
+  body {
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Hide scrollbars on mobile when running as PWA */
+@media (display-mode: standalone) {
+  ::-webkit-scrollbar {
+    display: none;
+  }
+  
+  * {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

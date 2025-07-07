@@ -1,0 +1,56 @@
+{
+  "name": "Figma Clone - Collaborative Design Tool",
+  "short_name": "Figma Clone",
+  "description": "A real-time collaborative design tool with offline support",
+  "theme_color": "#000000",
+  "background_color": "#ffffff",
+  "display": "standalone",
+  "scope": "/",
+  "start_url": "/",
+  "orientation": "portrait-primary",
+  "categories": ["design", "productivity", "collaboration"],
+  "lang": "en",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/figma-logo.ico",
+      "sizes": "16x16 32x32 48x48",
+      "type": "image/x-icon",
+      "purpose": "any"
+    },
+    {
+      "src": "/figma-logo.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/figma-logo.svg",
+      "sizes": "1280x720",
+      "type": "image/svg+xml",
+      "platform": "wide",
+      "label": "Figma Clone Dashboard"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "New Design",
+      "short_name": "New",
+      "description": "Create a new design document",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/figma-logo.svg",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "edge_side_panel": {
+    "preferred_width": 400
+  }
+}

@@ -5,7 +5,6 @@ import { CanvasMode } from "~/types";
 import IconButton from "./IconButton";
 import { BiPointer } from "react-icons/bi";
 import { RiHand } from "react-icons/ri";
-import { doc } from "prettier";
 
 export default function SelectionButton({
   isActive,
