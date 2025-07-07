@@ -8,6 +8,7 @@ export default function Path({
   fill,
   opacity,
   points,
+  rotation,
   onPointerDown,
 }: {
   x: number;
@@ -16,6 +17,7 @@ export default function Path({
   fill: string;
   opacity: number;
   points: number[][];
+  rotation?: number;
   onPointerDown?: (e: React.PointerEvent) => void;
 }) {
   const pathData = getSvgPathFromStroke(
@@ -27,11 +29,14 @@ export default function Path({
     }),
   );
 
+  // For rotation, we need to calculate the center of the path's bounding box
+  // But since paths are complex, we'll use the x,y position as the origin
+  const rotationTransform = rotation ? `rotate(${rotation} ${x} ${y})` : '';
+
   return (
-    <g  className="group">
+    <g className="group" transform={`translate(${x}, ${y}) ${rotationTransform}`}>
       <path
         className="pointer-events-none opacity-0 group-hover:opacity-100"
-        style={{ transform: `translate(${x}px, ${y}px)` }}
         d={pathData}
         fill="none"
         stroke="#0b99ff"
@@ -41,7 +46,6 @@ export default function Path({
       />
       <path
         onPointerDown={onPointerDown}
-        style={{ transform: `translate(${x}px, ${y}px)` }}
         d={pathData}
         fill={fill}
         stroke={stroke ?? "#CCC"}

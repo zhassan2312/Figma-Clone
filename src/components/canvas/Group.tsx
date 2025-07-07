@@ -14,21 +14,29 @@ const Group = memo(
     onLayerPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
     const children = layer.children || [];
+    const { x, y, width, height, rotation } = layer;
+
+    // Calculate center point for rotation
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+    const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
     return (
-      <g key={id}
+      <g 
+        key={id}
         onPointerDown={(e: React.PointerEvent) => onLayerPointerDown(e, id)}
         style={{
           opacity: layer.visible !== false ? 1 : 0,
           pointerEvents: layer.locked ? "none" : "auto",
         }}
+        transform={rotationTransform}
       >
         {/* Invisible bounding rectangle for the group */}
         <rect
-          x={layer.x}
-          y={layer.y}
-          width={layer.width}
-          height={layer.height}
+          x={x}
+          y={y}
+          width={width}
+          height={height}
           fill="transparent"
           stroke="none"
           style={{ pointerEvents: "all" }}

@@ -6,6 +6,20 @@ body {
   color: #000;
 }
 
+/* Remove default browser outlines on SVG elements */
+svg * {
+  outline: none;
+}
+
+svg *:focus {
+  outline: none;
+}
+
+/* Remove default selection outlines */
+.pointer-events-auto:focus {
+  outline: none;
+}
+
 /* PWA and Offline Support Styles */
 :root {
   --offline-warning-height: 0px;

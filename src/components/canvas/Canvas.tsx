@@ -243,14 +243,12 @@ export default function Canvas({
   );
 
   const onRotateHandlePointerDown = useMutation(
-    ({ storage }, initialBounds: XYWH, center: Point, initialAngle: number) => {
+    ({ storage, self }, initialBounds: XYWH, center: Point, initialAngle: number) => {
       history.pause();
       
       // Get the initial rotation of the selected layer
-      const self = useSelf();
       let initialRotation = 0;
-      
-      if (self?.presence?.selection && self.presence.selection.length > 0) {
+      if (self.presence.selection.length > 0) {
         const liveLayers = storage.get("layers");
         const layer = liveLayers.get(self.presence.selection[0]);
         if (layer) {
@@ -724,28 +722,46 @@ export default function Canvas({
       const liveLayers = storage.get("layers");
 
       if (self.presence.selection.length > 0) {
-        // Calculate scale factor based on the corner being dragged
         const initialBounds = canvasState.initialBounds;
         const corner = canvasState.corner;
         
-        let scaleX = 1;
-        let scaleY = 1;
+        // Calculate center point
+        const centerX = initialBounds.x + initialBounds.width / 2;
+        const centerY = initialBounds.y + initialBounds.height / 2;
         
-        // Calculate scale based on corner
-        if (corner === Side.Right || corner === Side.TopRight || corner === Side.BottomRight) {
-          scaleX = Math.max(0.1, (point.x - initialBounds.x) / initialBounds.width);
-        } else if (corner === Side.Left || corner === Side.TopLeft || corner === Side.BottomLeft) {
-          scaleX = Math.max(0.1, (initialBounds.x + initialBounds.width - point.x) / initialBounds.width);
+        // Calculate initial corner position based on which corner is being dragged
+        let initialCornerX, initialCornerY;
+        if (corner & Side.Top) {
+          initialCornerY = initialBounds.y;
+        } else {
+          initialCornerY = initialBounds.y + initialBounds.height;
+        }
+        if (corner & Side.Left) {
+          initialCornerX = initialBounds.x;
+        } else {
+          initialCornerX = initialBounds.x + initialBounds.width;
         }
         
-        if (corner === Side.Bottom || corner === Side.BottomLeft || corner === Side.BottomRight) {
-          scaleY = Math.max(0.1, (point.y - initialBounds.y) / initialBounds.height);
-        } else if (corner === Side.Top || corner === Side.TopLeft || corner === Side.TopRight) {
-          scaleY = Math.max(0.1, (initialBounds.y + initialBounds.height - point.y) / initialBounds.height);
-        }
+        // Calculate initial distances from center to corner
+        const initialDistanceX = Math.abs(initialCornerX - centerX);
+        const initialDistanceY = Math.abs(initialCornerY - centerY);
         
-        // Use uniform scaling (maintain aspect ratio)
-        const scale = Math.min(scaleX, scaleY);
+        // Calculate current distances from center to mouse
+        const currentDistanceX = Math.abs(point.x - centerX);
+        const currentDistanceY = Math.abs(point.y - centerY);
+        
+        // Calculate scale factors for each axis
+        let scaleX = initialDistanceX > 0 ? currentDistanceX / initialDistanceX : 1;
+        let scaleY = initialDistanceY > 0 ? currentDistanceY / initialDistanceY : 1;
+        
+        // For proportional scaling, use the average of both scales
+        const scale = (scaleX + scaleY) / 2;
+        
+        // Add minimum and maximum scale constraints
+        const constrainedScale = Math.max(0.1, Math.min(10, scale));
+        
+        // Apply dead zone for very small changes (more precise than before)
+        const finalScale = Math.abs(constrainedScale - 1) < 0.01 ? 1 : constrainedScale;
         
         // Scale the main selected layer and all its children recursively
         const scaleLayerAndChildren = (layerId: string, scale: number, isRoot = false) => {
@@ -754,48 +770,27 @@ export default function Canvas({
           
           const layerData = layer.toObject() as any;
           
-          // For root layer, adjust position based on corner
+          // For root layer, scale from center
           if (isRoot) {
-            let newX = layerData.x;
-            let newY = layerData.y;
-            
-            if (corner === Side.TopLeft) {
-              newX = initialBounds.x + initialBounds.width - (initialBounds.width * scale);
-              newY = initialBounds.y + initialBounds.height - (initialBounds.height * scale);
-            } else if (corner === Side.TopRight) {
-              newX = initialBounds.x;
-              newY = initialBounds.y + initialBounds.height - (initialBounds.height * scale);
-            } else if (corner === Side.BottomLeft) {
-              newX = initialBounds.x + initialBounds.width - (initialBounds.width * scale);
-              newY = initialBounds.y;
-            } else if (corner === Side.BottomRight) {
-              newX = initialBounds.x;
-              newY = initialBounds.y;
-            } else if (corner === Side.Top) {
-              newX = initialBounds.x + (initialBounds.width - initialBounds.width * scale) / 2;
-              newY = initialBounds.y + initialBounds.height - (initialBounds.height * scale);
-            } else if (corner === Side.Bottom) {
-              newX = initialBounds.x + (initialBounds.width - initialBounds.width * scale) / 2;
-              newY = initialBounds.y;
-            } else if (corner === Side.Left) {
-              newX = initialBounds.x + initialBounds.width - (initialBounds.width * scale);
-              newY = initialBounds.y + (initialBounds.height - initialBounds.height * scale) / 2;
-            } else if (corner === Side.Right) {
-              newX = initialBounds.x;
-              newY = initialBounds.y + (initialBounds.height - initialBounds.height * scale) / 2;
-            }
+            const newWidth = initialBounds.width * scale;
+            const newHeight = initialBounds.height * scale;
+            const newX = centerX - newWidth / 2;
+            const newY = centerY - newHeight / 2;
             
             layer.update({
               x: newX,
               y: newY,
-              width: layerData.width * scale,
-              height: layerData.height * scale,
+              width: newWidth,
+              height: newHeight,
             });
           } else {
-            // For child layers, scale relative to parent
+            // For child layers, scale relative to parent center
+            const relativeX = layerData.x - centerX;
+            const relativeY = layerData.y - centerY;
+            
             layer.update({
-              x: layerData.x * scale,
-              y: layerData.y * scale,
+              x: centerX + relativeX * scale,
+              y: centerY + relativeY * scale,
               width: layerData.width * scale,
               height: layerData.height * scale,
             });
@@ -814,7 +809,7 @@ export default function Canvas({
         };
         
         // Scale the main layer and all its children
-        scaleLayerAndChildren(self.presence.selection[0], scale, true);
+        scaleLayerAndChildren(self.presence.selection[0], finalScale, true);
       }
     },
     [canvasState],

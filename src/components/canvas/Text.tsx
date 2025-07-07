@@ -73,7 +73,7 @@ export default function Text({
   };
 
   return (
-    <g key={id} className="group" onDoubleClick={handleDoubleClick}>
+    <g key={id} className="group" onDoubleClick={handleDoubleClick} transform={rotationTransform}>
       {isEditing ? (
         <foreignObject x={x} y={y} width={width} height={height}>
           <input
@@ -96,14 +96,14 @@ export default function Text({
       ) : (
         <>
           <rect
-            style={{ transform: `translate(${x}px, ${y}px)` }}
+            x={x}
+            y={y}
             width={width}
             height={height}
             fill="none"
             stroke="#0b99ff"
             strokeWidth="2"
             className="pointer-events-none opacity-0 group-hover:opacity-100"
-            transform={rotationTransform}
           />
           <text
             onPointerDown={(e) => onPointerDown(e, id)}
@@ -118,7 +118,6 @@ export default function Text({
             style={{
               pointerEvents: layer.locked ? "none" : "auto",
             }}
-            transform={rotationTransform}
           >
             {text}
           </text>

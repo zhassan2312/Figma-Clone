@@ -17,24 +17,27 @@ export default function Rectangle({
   const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
   return (
-    <g key={id} className="group">
+    <g key={id} className="group" transform={rotationTransform}>
       <rect
-        style={{ transform: `translate(${x}px, ${y}px)` }}
+        x={x}
+        y={y}
         width={width}
         height={height}
         fill="none"
         stroke="#0b99ff"
         strokeWidth="4"
         className="pointer-events-none opacity-0 group-hover:opacity-100"
-        transform={rotationTransform}
+        rx={cornerRadius ?? 0}
+        ry={cornerRadius ?? 0}
       />
       <rect
         onPointerDown={(e) => onPointerDown(e, id)}
         style={{ 
-          transform: `translate(${x}px, ${y}px)`,
           opacity: layer.visible !== false ? opacity / 100 : 0,
           pointerEvents: layer.locked ? "none" : "auto",
         }}
+        x={x}
+        y={y}
         width={width}
         height={height}
         fill={fill ? colorToCss(fill) : "#CCC"}
@@ -42,7 +45,6 @@ export default function Rectangle({
         stroke={stroke ? colorToCss(stroke) : "#CCC"}
         rx={cornerRadius ?? 0}
         ry={cornerRadius ?? 0}
-        transform={rotationTransform}
       />
     </g>
   );

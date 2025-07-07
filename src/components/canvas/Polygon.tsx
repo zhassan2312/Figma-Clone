@@ -36,22 +36,20 @@ const Polygon = memo(
     };
 
     return (
-      <polygon
-      key={id}
-
-        className="pointer-events-auto"
-        onPointerDown={(e) => onPointerDown(e, id)}
-        style={{
-          transform: `translate(${x}px, ${y}px)`,
-          opacity: layer.visible !== false ? opacity / 100 : 0,
-          pointerEvents: layer.locked ? "none" : "auto",
-        }}
-        points={generatePolygonPoints()}
-        fill={fill ? colorToCss(fill) : "transparent"}
-        stroke={stroke ? colorToCss(stroke) : "#000"}
-        strokeWidth="1"
-        transform={rotationTransform}
-      />
+      <g key={id} transform={`translate(${x}, ${y}) ${rotationTransform}`}>
+        <polygon
+          className="pointer-events-auto"
+          onPointerDown={(e) => onPointerDown(e, id)}
+          style={{
+            opacity: layer.visible !== false ? opacity / 100 : 0,
+            pointerEvents: layer.locked ? "none" : "auto",
+          }}
+          points={generatePolygonPoints()}
+          fill={fill ? colorToCss(fill) : "transparent"}
+          stroke={stroke ? colorToCss(stroke) : "#000"}
+          strokeWidth="1"
+        />
+      </g>
     );
   }
 );

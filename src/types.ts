@@ -67,6 +67,7 @@ export type PathLayer = {
   fill: Color;
   stroke: Color;
   opacity: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   points: number[][];
   name?: string;
   parentId?: string; // ID of parent frame if nested
@@ -119,6 +120,7 @@ export type GroupLayer = {
   y: number;
   height: number;
   width: number;
+  rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   children?: string[]; // Array of child layer IDs for grouping
   parentId?: string; // ID of parent frame/group if nested
@@ -158,6 +160,7 @@ export type LineLayer = {
   isDashed: boolean;
   dashWidth?: number; // Dash width (default: 5)
   dashGap?: number; // Gap between dashes (default: 5)
+  rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   parentId?: string;
   visible?: boolean;
@@ -179,6 +182,7 @@ export type ArrowLayer = {
   arrowStart: boolean; // Arrow head at start
   arrowEnd: boolean; // Arrow head at end
   arrowSize: number; // Size of arrow heads
+  rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   parentId?: string;
   visible?: boolean;

@@ -39,6 +39,7 @@ const LayerComponent = memo(
             fill={layer.fill ? colorToCss(layer.fill) : "#CCC"}
             stroke={layer.stroke ? colorToCss(layer.stroke) : "#CCC"}
             opacity={layer.opacity}
+            rotation={(layer as any).rotation}
           />
         );
       case LayerType.Rectangle:

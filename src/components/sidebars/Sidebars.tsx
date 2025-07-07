@@ -77,6 +77,7 @@ export default function Sidebars({
         height?: number;
         opacity?: number;
         cornerRadius?: number;
+        rotation?: number;
         fill?: string;
         stroke?: string;
         fontSize?: number;
@@ -100,6 +101,7 @@ export default function Sidebars({
           ...(updates.cornerRadius !== undefined && {
             cornerRadius: updates.cornerRadius,
           }),
+          ...(updates.rotation !== undefined && { rotation: updates.rotation }),
           ...(updates.fill !== undefined && { fill: hexToRgb(updates.fill) }),
           ...(updates.stroke !== undefined && {
             stroke: hexToRgb(updates.stroke),
@@ -839,6 +841,31 @@ export default function Sidebars({
                   )}
                 </div>
               </div>
+              
+              {/* Rotation section - for all rotatable layers */}
+              {layer.type !== LayerType.Path && (
+                <>
+                  <div className="border-b border-gray-200" />
+                  <div className="flex flex-col gap-2 p-4">
+                    <span className="mb-2 text-[11px] font-medium">Transform</span>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-[9px] font-medium text-gray-500">
+                        Rotation (degrees)
+                      </p>
+                      <NumberInput
+                        value={Math.round(("rotation" in layer) ? layer.rotation || 0 : 0)}
+                        min={0}
+                        max={360}
+                        onChange={(number) => {
+                          updateLayer({ rotation: number });
+                        }}
+                        classNames="w-full"
+                        icon={<p>°</p>}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               
               {/* Fill section - only for layers that have fill property */}
               {(layer.type === LayerType.Rectangle || 

@@ -12,12 +12,16 @@ const Line = memo(
     layer: LineLayer;
     onPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
-    const { x, y, x2, y2, stroke, opacity, strokeWidth = 2, isDashed = false, dashWidth = 5, dashGap = 5 } = layer;
+    const { x, y, x2, y2, stroke, opacity, strokeWidth = 2, isDashed = false, dashWidth = 5, dashGap = 5, rotation } = layer;
+
+    // Calculate center point for rotation
+    const centerX = (x + x2) / 2;
+    const centerY = (y + y2) / 2;
+    const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
     return (
       <line
-      key={id}
-
+        key={id}
         className="pointer-events-auto"
         onPointerDown={(e) => onPointerDown(e, id)}
         style={{
@@ -32,6 +36,7 @@ const Line = memo(
         strokeWidth={strokeWidth}
         strokeDasharray={isDashed ? `${dashWidth},${dashGap}` : "none"}
         strokeLinecap="round"
+        transform={rotationTransform}
       />
     );
   }

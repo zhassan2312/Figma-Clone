@@ -25,8 +25,14 @@ const Arrow = memo(
       dashGap = 5,
       arrowStart = false, 
       arrowEnd = true, 
-      arrowSize = 10 
+      arrowSize = 10,
+      rotation
     } = layer;
+
+    // Calculate center point for rotation
+    const centerX = (x + x2) / 2;
+    const centerY = (y + y2) / 2;
+    const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
     // Calculate arrow head points
     const angle = Math.atan2(y2 - y, x2 - x);
@@ -55,6 +61,7 @@ const Arrow = memo(
           opacity: layer.visible !== false ? opacity / 100 : 0,
           pointerEvents: layer.locked ? "none" : "auto",
         }}
+        transform={rotationTransform}
       >
         {/* Main line */}
         <line
