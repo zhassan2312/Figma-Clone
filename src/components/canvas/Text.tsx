@@ -68,7 +68,7 @@ export default function Text({
   };
 
   return (
-    <g className="group" onDoubleClick={handleDoubleClick}>
+    <g key={id} className="group" onDoubleClick={handleDoubleClick}>
       {isEditing ? (
         <foreignObject x={x} y={y} width={width} height={height}>
           <input

@@ -28,7 +28,7 @@ export default function Path({
   );
 
   return (
-    <g className="group">
+    <g  className="group">
       <path
         className="pointer-events-none opacity-0 group-hover:opacity-100"
         style={{ transform: `translate(${x}px, ${y}px)` }}
