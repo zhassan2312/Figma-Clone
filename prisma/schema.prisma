@@ -59,6 +59,8 @@ model User {
     name          String?
     email         String   @unique
     emailVerified DateTime?
+    isEmailVerified Boolean @default(false)
+    verificationCode String? 
     image         String?
     password      String
     accounts      Account[]

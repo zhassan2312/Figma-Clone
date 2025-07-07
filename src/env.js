@@ -17,6 +17,11 @@ export const env = createEnv({
       .default("development"),
     LIVEBLOCKS_PUBLIC_KEY: z.string(),
     LIVEBLOCKS_SECRET_KEY: z.string(),
+    USER_EMAIL: z.string().email(),
+    USER_PASSWORD: z.string(),
+    SERVICE: z
+      .enum(["gmail", "sendgrid", "mailgun", "smtp"])
+      .default("gmail"),
   },
 
   /**
@@ -38,6 +43,9 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     LIVEBLOCKS_PUBLIC_KEY: process.env.LIVEBLOCKS_PUBLIC_KEY,
     LIVEBLOCKS_SECRET_KEY: process.env.LIVEBLOCKS_SECRET_KEY,
+    USER_EMAIL: process.env.USER_EMAIL,
+    USER_PASSWORD: process.env.USER_PASSWORD,
+    SERVICE: process.env.SERVICE,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
