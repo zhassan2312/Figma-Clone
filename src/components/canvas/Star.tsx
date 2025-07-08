@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
+import { calculateFillStyle, calculateStrokeStyle, getLayerFills, getLayerStrokes } from "@/utils";
 import { StarLayer } from "@/types";
 
 const Star = memo(
@@ -20,8 +20,8 @@ const Star = memo(
     const innerRadiusActual = outerRadius * innerRadius;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
-    const fillStyle = calculateLayerFillStyle(layer);
-    const strokeStyle = calculateLayerStrokeStyle(layer);
+    const fillStyle = calculateFillStyle(getLayerFills(layer));
+    const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
 
     // Generate star path
     const generateStarPath = () => {

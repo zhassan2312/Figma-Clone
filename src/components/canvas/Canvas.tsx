@@ -15,6 +15,7 @@ import {
   penPointsToPathPayer,
   pointerEventToCanvasPoint,
   resizeBounds,
+  resizeBoundsWithRotation,
   createDefaultFill,
   createDefaultStroke,
 } from "@/utils";
@@ -818,10 +819,11 @@ export default function Canvas({
             }
           } else {
             // Standard rectangular resizing for other layer types
-            const bounds = resizeBounds(
+            const bounds = resizeBoundsWithRotation(
               canvasState.initialBounds,
               canvasState.corner,
               point,
+              layerData.rotation || 0
             );
             layer.update(bounds);
           }

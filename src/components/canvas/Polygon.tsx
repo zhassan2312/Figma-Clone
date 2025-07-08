@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
+import { calculateFillStyle, calculateStrokeStyle, getLayerFills, getLayerStrokes } from "@/utils";
 import { PolygonLayer } from "@/types";
 
 const Polygon = memo(
@@ -18,8 +18,8 @@ const Polygon = memo(
     const centerY = y + height / 2;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
-    const fillStyle = calculateLayerFillStyle(layer);
-    const strokeStyle = calculateLayerStrokeStyle(layer);
+    const fillStyle = calculateFillStyle(getLayerFills(layer));
+    const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
 
     // Generate polygon points
     const generatePolygonPoints = () => {

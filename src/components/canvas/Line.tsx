@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { calculateLayerStrokeStyle } from "@/utils";
+import { calculateStrokeStyle, getLayerStrokes } from "@/utils";
 import { LineLayer } from "@/types";
 
 const Line = memo(
@@ -19,7 +19,7 @@ const Line = memo(
     const centerY = (y + y2) / 2;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
-    const strokeStyle = calculateLayerStrokeStyle(layer);
+    const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
 
     return (
       <line

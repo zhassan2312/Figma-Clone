@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { calculateLayerStrokeStyle } from "@/utils";
+import { calculateStrokeStyle, getLayerStrokes } from "@/utils";
 import { ArrowLayer } from "@/types";
 
 const Arrow = memo(
@@ -30,7 +30,7 @@ const Arrow = memo(
     const centerY = (y + y2) / 2;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
-    const strokeStyle = calculateLayerStrokeStyle(layer);
+    const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
 
     // Calculate arrow head points
     const angle = Math.atan2(y2 - y, x2 - x);

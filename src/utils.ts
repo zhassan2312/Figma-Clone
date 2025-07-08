@@ -187,6 +187,50 @@ export function resizeBounds(bounds: XYWH, corner: Side, point: Point): XYWH {
   return result;
 }
 
+// Helper function to rotate a point around a center
+function rotatePoint(point: Point, center: Point, angle: number): Point {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  const dx = point.x - center.x;
+  const dy = point.y - center.y;
+  
+  return {
+    x: center.x + dx * cos - dy * sin,
+    y: center.y + dx * sin + dy * cos
+  };
+}
+
+// Rotation-aware resizing function
+export function resizeBoundsWithRotation(
+  bounds: XYWH, 
+  corner: Side, 
+  point: Point, 
+  rotation: number = 0
+): XYWH {
+  if (rotation === 0) {
+    return resizeBounds(bounds, corner, point);
+  }
+  
+  // Convert rotation from degrees to radians
+  const angleRad = (rotation * Math.PI) / 180;
+  
+  // Calculate the center of the bounds
+  const center = {
+    x: bounds.x + bounds.width / 2,
+    y: bounds.y + bounds.height / 2
+  };
+  
+  // Transform the mouse point to the unrotated coordinate system
+  const unrotatedPoint = rotatePoint(point, center, -angleRad);
+  
+  // Perform the resize calculation in the unrotated space
+  const newBounds = resizeBounds(bounds, corner, unrotatedPoint);
+  
+  // The resized bounds are already in the correct coordinate system
+  // because we only transform the mouse point, not the bounds themselves
+  return newBounds;
+}
+
 export function penPointsToPathPayer(
   points: number[][],
   color: Color,
@@ -352,16 +396,6 @@ export function getLayerStrokes(layer: any): Stroke[] {
     return [createDefaultStroke(layer.stroke)];
   }
   
-  // Default empty strokes
+  // Return empty array if no strokes
   return [];
-}
-
-export function calculateLayerFillStyle(layer: any): string {
-  const fills = getLayerFills(layer);
-  return calculateFillStyle(fills);
-}
-
-export function calculateLayerStrokeStyle(layer: any): { stroke: string; strokeWidth: number; strokeDasharray?: string } {
-  const strokes = getLayerStrokes(layer);
-  return calculateStrokeStyle(strokes);
 }

@@ -1,5 +1,5 @@
 import { getStroke } from "perfect-freehand";
-import { getSvgPathFromStroke, calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
+import { getSvgPathFromStroke, calculateFillStyle, calculateStrokeStyle, getLayerFills, getLayerStrokes } from "@/utils";
 import { PathLayer } from "@/types";
 
 export default function Path({
@@ -21,8 +21,8 @@ export default function Path({
     }),
   );
 
-  const fillStyle = calculateLayerFillStyle(layer);
-  const strokeStyle = calculateLayerStrokeStyle(layer);
+  const fillStyle = calculateFillStyle(getLayerFills(layer));
+  const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
 
   // For rotation, we need to calculate the center of the path's bounding box
   // But since paths are complex, we'll use the x,y position as the origin

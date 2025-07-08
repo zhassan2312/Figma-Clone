@@ -1,7 +1,7 @@
 import { useMutation } from "@liveblocks/react";
 import { useEffect, useRef, useState } from "react";
 import { TextLayer } from "@/types";
-import { calculateLayerFillStyle, calculateLayerStrokeStyle, createDefaultFill, createDefaultStroke } from "@/utils";
+import { calculateFillStyle, calculateStrokeStyle, getLayerFills, getLayerStrokes, createDefaultFill, createDefaultStroke } from "@/utils";
 
 export default function Text({
   id,
@@ -38,8 +38,8 @@ export default function Text({
   const inputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<SVGTextElement>(null);
 
-  const fillStyle = calculateLayerFillStyle(layer);
-  const strokeStyle = calculateLayerStrokeStyle(layer);
+  const fillStyle = calculateFillStyle(getLayerFills(layer));
+  const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
 
   // Calculate actual text dimensions
   useEffect(() => {

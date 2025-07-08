@@ -1,4 +1,4 @@
-import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
+import { calculateFillStyle, calculateStrokeStyle, getLayerFills, getLayerStrokes } from "@/utils";
 import { FrameLayer } from "@/types";
 import { useStorage } from "@liveblocks/react";
 import LayerComponent from "./LayerComponent";
@@ -19,8 +19,8 @@ export default function Frame({
   const centerY = y + height / 2;
   const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
 
-  const fillStyle = calculateLayerFillStyle(layer);
-  const strokeStyle = calculateLayerStrokeStyle(layer);
+  const fillStyle = calculateFillStyle(getLayerFills(layer));
+  const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
 
   return (
     <g key={id}>
