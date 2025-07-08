@@ -7,6 +7,8 @@ import {
   Point,
   Side,
   XYWH,
+  Fill,
+  Stroke,
 } from "./types";
 
 export function colorToCss(color: Color) {
@@ -18,6 +20,137 @@ export function hexToRgb(hex: string): Color {
   const g = parseInt(hex.slice(3, 5), 16);
   const b = parseInt(hex.slice(5, 7), 16);
   return { r, g, b };
+}
+
+// Utility functions for fills and strokes
+export function createDefaultFill(color: Color = { r: 217, g: 217, b: 217 }): Fill {
+  return {
+    id: crypto.randomUUID(),
+    type: 'solid',
+    color,
+    opacity: 100,
+    visible: true,
+  };
+}
+
+export function createDefaultStroke(color: Color = { r: 217, g: 217, b: 217 }): Stroke {
+  return {
+    id: crypto.randomUUID(),
+    color,
+    width: 1,
+    opacity: 100,
+    visible: true,
+    position: 'center',
+  };
+}
+
+export function getVisibleFills(fills: Fill[]): Fill[] {
+  if (!fills || !Array.isArray(fills)) return [];
+  return fills.filter(fill => fill.visible);
+}
+
+export function getVisibleStrokes(strokes: Stroke[]): Stroke[] {
+  if (!strokes || !Array.isArray(strokes)) return [];
+  return strokes.filter(stroke => stroke.visible);
+}
+
+export function calculateFillStyle(fills: Fill[]): string {
+  if (!fills || !Array.isArray(fills)) return 'transparent';
+  const visibleFills = getVisibleFills(fills);
+  if (visibleFills.length === 0) return 'transparent';
+  
+  if (visibleFills.length === 1) {
+    // Single fill - simple case
+    const fill = visibleFills[0];
+    const color = fill.color;
+    const alpha = fill.opacity / 100;
+    return `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`;
+  }
+  
+  // Multiple fills - blend colors from bottom to top
+  // Start with the bottom fill and blend upwards
+  let result = { r: 255, g: 255, b: 255, a: 0 }; // Start with transparent white
+  
+  // Process fills from bottom to top (reverse order)
+  for (let i = visibleFills.length - 1; i >= 0; i--) {
+    const fill = visibleFills[i];
+    const color = fill.color;
+    const alpha = fill.opacity / 100;
+    
+    // Alpha blending formula: result = source * alpha + destination * (1 - alpha)
+    const srcAlpha = alpha;
+    const dstAlpha = result.a;
+    const outAlpha = srcAlpha + dstAlpha * (1 - srcAlpha);
+    
+    if (outAlpha > 0) {
+      result.r = (color.r * srcAlpha + result.r * dstAlpha * (1 - srcAlpha)) / outAlpha;
+      result.g = (color.g * srcAlpha + result.g * dstAlpha * (1 - srcAlpha)) / outAlpha;
+      result.b = (color.b * srcAlpha + result.b * dstAlpha * (1 - srcAlpha)) / outAlpha;
+      result.a = outAlpha;
+    }
+  }
+  
+  return `rgba(${Math.round(result.r)}, ${Math.round(result.g)}, ${Math.round(result.b)}, ${result.a})`;
+}
+
+export function calculateStrokeStyle(strokes: Stroke[]): { stroke: string; strokeWidth: number; strokeDasharray?: string } {
+  if (!strokes || !Array.isArray(strokes)) {
+    return { stroke: 'none', strokeWidth: 0 };
+  }
+  const visibleStrokes = getVisibleStrokes(strokes);
+  if (visibleStrokes.length === 0) {
+    return { stroke: 'none', strokeWidth: 0 };
+  }
+  
+  if (visibleStrokes.length === 1) {
+    // Single stroke - simple case
+    const stroke = visibleStrokes[0];
+    const color = stroke.color;
+    const alpha = stroke.opacity / 100;
+    
+    return {
+      stroke: `rgba(${color.r}, ${color.g}, ${color.b}, ${alpha})`,
+      strokeWidth: stroke.width,
+      strokeDasharray: stroke.dashPattern?.join(' '),
+    };
+  }
+  
+  // Multiple strokes - blend colors and use the maximum width
+  // Similar to fill blending but for strokes
+  let result = { r: 255, g: 255, b: 255, a: 0 }; // Start with transparent white
+  let maxWidth = 0;
+  let dashPattern: string | undefined;
+  
+  // Process strokes from bottom to top (reverse order)
+  for (let i = visibleStrokes.length - 1; i >= 0; i--) {
+    const stroke = visibleStrokes[i];
+    const color = stroke.color;
+    const alpha = stroke.opacity / 100;
+    maxWidth = Math.max(maxWidth, stroke.width);
+    
+    // Use dash pattern from the topmost stroke that has one
+    if (i === 0 && stroke.dashPattern) {
+      dashPattern = stroke.dashPattern.join(' ');
+    }
+    
+    // Alpha blending formula
+    const srcAlpha = alpha;
+    const dstAlpha = result.a;
+    const outAlpha = srcAlpha + dstAlpha * (1 - srcAlpha);
+    
+    if (outAlpha > 0) {
+      result.r = (color.r * srcAlpha + result.r * dstAlpha * (1 - srcAlpha)) / outAlpha;
+      result.g = (color.g * srcAlpha + result.g * dstAlpha * (1 - srcAlpha)) / outAlpha;
+      result.b = (color.b * srcAlpha + result.b * dstAlpha * (1 - srcAlpha)) / outAlpha;
+      result.a = outAlpha;
+    }
+  }
+  
+  return {
+    stroke: `rgba(${Math.round(result.r)}, ${Math.round(result.g)}, ${Math.round(result.b)}, ${result.a})`,
+    strokeWidth: maxWidth,
+    strokeDasharray: dashPattern,
+  };
 }
 
 const COLORS = ["#DC2626", "#D97706", "#059669", "#7C3AED", "#DB2777"];
@@ -89,8 +222,8 @@ export function penPointsToPathPayer(
     y: top,
     height: bottom - top,
     width: right - left,
-    fill: color,
-    stroke: color,
+    fills: [createDefaultFill(color)],
+    strokes: [createDefaultStroke(color)],
     opacity: 100,
     points: points
       .filter(
@@ -190,4 +323,45 @@ export function findIntersectionLayersWithRectangle(
   }
 
   return ids;
+}
+
+// Backward compatibility helpers for layers that might have old fill/stroke properties
+export function getLayerFills(layer: any): Fill[] {
+  // If layer has new fills array, use it
+  if (layer.fills && Array.isArray(layer.fills)) {
+    return layer.fills;
+  }
+  
+  // If layer has old fill property, convert to fills array
+  if (layer.fill) {
+    return [createDefaultFill(layer.fill)];
+  }
+  
+  // Default empty fills
+  return [];
+}
+
+export function getLayerStrokes(layer: any): Stroke[] {
+  // If layer has new strokes array, use it
+  if (layer.strokes && Array.isArray(layer.strokes)) {
+    return layer.strokes;
+  }
+  
+  // If layer has old stroke property, convert to strokes array
+  if (layer.stroke) {
+    return [createDefaultStroke(layer.stroke)];
+  }
+  
+  // Default empty strokes
+  return [];
+}
+
+export function calculateLayerFillStyle(layer: any): string {
+  const fills = getLayerFills(layer);
+  return calculateFillStyle(fills);
+}
+
+export function calculateLayerStrokeStyle(layer: any): { stroke: string; strokeWidth: number; strokeDasharray?: string } {
+  const strokes = getLayerStrokes(layer);
+  return calculateStrokeStyle(strokes);
 }

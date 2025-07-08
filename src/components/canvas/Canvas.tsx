@@ -15,6 +15,8 @@ import {
   penPointsToPathPayer,
   pointerEventToCanvasPoint,
   resizeBounds,
+  createDefaultFill,
+  createDefaultStroke,
 } from "@/utils";
 import LayerComponent from "./LayerComponent";
 import {
@@ -365,8 +367,8 @@ export default function Canvas({
           y: position.y,
           height: 100,
           width: 100,
-          fill: { r: 217, g: 217, b: 217 },
-          stroke: { r: 217, g: 217, b: 217 },
+          fills: [createDefaultFill()],
+          strokes: [createDefaultStroke()],
           opacity: 100,
           name: getNextLayerName(LayerType.Rectangle),
           parentId: parentFrameId || undefined,
@@ -380,8 +382,8 @@ export default function Canvas({
           y: position.y,
           height: 100,
           width: 100,
-          fill: { r: 217, g: 217, b: 217 },
-          stroke: { r: 217, g: 217, b: 217 },
+          fills: [createDefaultFill()],
+          strokes: [createDefaultStroke()],
           opacity: 100,
           name: getNextLayerName(LayerType.Ellipse),
           parentId: parentFrameId || undefined,
@@ -393,14 +395,18 @@ export default function Canvas({
           type: LayerType.Text,
           x: position.x,
           y: position.y,
-          height: 100,
-          width: 100,
+          height: 24, // More appropriate initial height based on font size
+          width: 32,  // More appropriate initial width for "Text"
           fontSize: 16,
           text: "Text",
           fontWeight: 400,
           fontFamily: "Inter",
-          stroke: { r: 217, g: 217, b: 217 },
-          fill: { r: 217, g: 217, b: 217 },
+          textAlign: 'left',
+          textDecoration: 'none',
+          letterSpacing: 0,
+          lineHeight: 1.2,
+          fills: [createDefaultFill()],
+          strokes: [],
           opacity: 100,
           name: getNextLayerName(LayerType.Text),
           parentId: parentFrameId || undefined,
@@ -414,8 +420,8 @@ export default function Canvas({
           y: position.y,
           height: 200,
           width: 200,
-          fill: { r: 255, g: 255, b: 255 },
-          stroke: { r: 153, g: 153, b: 153 },
+          fills: [createDefaultFill({ r: 255, g: 255, b: 255 })],
+          strokes: [createDefaultStroke({ r: 153, g: 153, b: 153 })],
           opacity: 100,
           cornerRadius: 0,
           name: getNextLayerName(LayerType.Frame),
@@ -432,8 +438,8 @@ export default function Canvas({
           y: position.y,
           height: 100,
           width: 100,
-          fill: { r: 217, g: 217, b: 217 },
-          stroke: { r: 217, g: 217, b: 217 },
+          fills: [createDefaultFill()],
+          strokes: [createDefaultStroke()],
           opacity: 100,
           vertices: 5,
           innerRadius: 0.5,
@@ -450,12 +456,8 @@ export default function Canvas({
           y: position.y,
           x2: position.x + 100,
           y2: position.y + 100,
-          stroke: { r: 217, g: 217, b: 217 },
+          strokes: [{ ...createDefaultStroke(), width: 2 }],
           opacity: 100,
-          strokeWidth: 2,
-          isDashed: false,
-          dashWidth: 5,
-          dashGap: 5,
           rotation: 0,
           name: getNextLayerName(LayerType.Line),
           parentId: parentFrameId || undefined,
@@ -469,12 +471,8 @@ export default function Canvas({
           y: position.y,
           x2: position.x + 100,
           y2: position.y + 100,
-          stroke: { r: 217, g: 217, b: 217 },
+          strokes: [{ ...createDefaultStroke(), width: 2 }],
           opacity: 100,
-          strokeWidth: 2,
-          isDashed: false,
-          dashWidth: 5,
-          dashGap: 5,
           arrowStart: false,
           arrowEnd: true,
           arrowSize: 10,
@@ -491,8 +489,8 @@ export default function Canvas({
           y: position.y,
           height: 100,
           width: 100,
-          fill: { r: 217, g: 217, b: 217 },
-          stroke: { r: 217, g: 217, b: 217 },
+          fills: [createDefaultFill()],
+          strokes: [createDefaultStroke()],
           opacity: 100,
           sides: 6,
           rotation: 0,
@@ -668,10 +666,95 @@ export default function Canvas({
         const layer = liveLayers.get(id);
         if (!layer || layer.get("locked")) return; // Skip locked layers
         
-        layer.update({
-          x: layer.get("x") + offset.x,
-          y: layer.get("y") + offset.y,
-        });
+        const layerData = layer.toObject();
+        
+        // Special handling for Line and Arrow layers
+        if (layerData.type === LayerType.Line || layerData.type === LayerType.Arrow) {
+          const lineLayer = layer as any; // Cast to any to access x2, y2
+          lineLayer.update({
+            x: lineLayer.get("x") + offset.x,
+            y: lineLayer.get("y") + offset.y,
+            x2: lineLayer.get("x2") + offset.x,
+            y2: lineLayer.get("y2") + offset.y,
+          });
+        } else {
+          // Standard layers with x, y properties
+          layer.update({
+            x: layer.get("x") + offset.x,
+            y: layer.get("y") + offset.y,
+          });
+        }
+      });
+
+      // Check if any moved layers should become children of frames
+      const liveLayerIds = storage.get("layerIds");
+      
+      // Helper function to find containing frame for a layer
+      const findContainingFrame = (layerId: string): string | null => {
+        const layer = liveLayers.get(layerId);
+        if (!layer) return null;
+        
+        const layerData = layer.toObject() as any;
+        const layerX = layerData.x || 0;
+        const layerY = layerData.y || 0;
+        
+        // Check all frames (excluding the layer itself and its current parent)
+        for (const frameId of liveLayerIds) {
+          if (frameId === layerId) continue;
+          
+          const frameLayer = liveLayers.get(frameId);
+          if (!frameLayer || frameLayer.get("type") !== LayerType.Frame) continue;
+          
+          const frameData = frameLayer.toObject() as any;
+          const frameX = frameData.x || 0;
+          const frameY = frameData.y || 0;
+          const frameWidth = frameData.width || 0;
+          const frameHeight = frameData.height || 0;
+          
+          // Check if layer is inside this frame
+          if (layerX >= frameX && layerX <= frameX + frameWidth &&
+              layerY >= frameY && layerY <= frameY + frameHeight) {
+            return frameId;
+          }
+        }
+        return null;
+      };
+
+      // Update parent-child relationships for moved layers
+      allLayersToMove.forEach(id => {
+        const layer = liveLayers.get(id);
+        if (!layer) return;
+        
+        const currentParentId = layer.get("parentId");
+        const newParentId = findContainingFrame(id);
+        
+        if (currentParentId !== newParentId) {
+          // Remove from old parent
+          if (currentParentId) {
+            const oldParent = liveLayers.get(currentParentId);
+            if (oldParent && (oldParent.get("type") === LayerType.Frame || oldParent.get("type") === LayerType.Group)) {
+              const oldParentTyped = oldParent as LiveObject<FrameLayer>;
+              const currentChildren = oldParentTyped.get("children") || [];
+              const newChildren = currentChildren.filter(childId => childId !== id);
+              oldParentTyped.update({ children: newChildren });
+            }
+          }
+          
+          // Add to new parent
+          if (newParentId) {
+            const newParent = liveLayers.get(newParentId);
+            if (newParent && (newParent.get("type") === LayerType.Frame || newParent.get("type") === LayerType.Group)) {
+              const newParentTyped = newParent as LiveObject<FrameLayer>;
+              const currentChildren = newParentTyped.get("children") || [];
+              if (!currentChildren.includes(id)) {
+                newParentTyped.update({ children: [...currentChildren, id] });
+              }
+            }
+          }
+          
+          // Update layer's parentId
+          layer.update({ parentId: newParentId || undefined } as any);
+        }
       });
 
       setState({ mode: CanvasMode.Translating, current: point });
@@ -1178,11 +1261,21 @@ export default function Canvas({
               <MultiplayerGuides />
               {pencilDraft !== null && pencilDraft.length > 0 && (
                 <Path
-                  x={0}
-                  y={0}
-                  opacity={100}
-                  fill={colorToCss({ r: 217, g: 217, b: 217 })}
-                  points={pencilDraft}
+                  id="pencil-draft"
+                  layer={{
+                    type: LayerType.Path,
+                    x: 0,
+                    y: 0,
+                    width: 0,
+                    height: 0,
+                    fills: [createDefaultFill({ r: 217, g: 217, b: 217 })],
+                    strokes: [createDefaultStroke({ r: 217, g: 217, b: 217 })],
+                    opacity: 100,
+                    points: pencilDraft,
+                    visible: true,
+                    locked: false,
+                  }}
+                  onPointerDown={() => {}}
                 />
               )}
             </g>

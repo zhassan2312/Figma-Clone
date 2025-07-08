@@ -1,5 +1,5 @@
 import { RectangleLayer } from "@/types";
-import { colorToCss } from "@/utils";
+import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
 
 export default function Rectangle({
   id,
@@ -10,11 +10,14 @@ export default function Rectangle({
   layer: RectangleLayer;
   onPointerDown: (e: React.PointerEvent, layerId: string) => void;
 }) {
-  const { x, y, width, height, fill, stroke, opacity, cornerRadius, rotation } = layer;
+  const { x, y, width, height, opacity, cornerRadius, rotation } = layer;
 
   const centerX = x + width / 2;
   const centerY = y + height / 2;
   const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+
+  const fillStyle = calculateLayerFillStyle(layer);
+  const strokeStyle = calculateLayerStrokeStyle(layer);
 
   return (
     <g key={id} className="group" transform={rotationTransform}>
@@ -40,9 +43,10 @@ export default function Rectangle({
         y={y}
         width={width}
         height={height}
-        fill={fill ? colorToCss(fill) : "#CCC"}
-        strokeWidth={1}
-        stroke={stroke ? colorToCss(stroke) : "#CCC"}
+        fill={fillStyle}
+        stroke={strokeStyle.stroke}
+        strokeWidth={strokeStyle.strokeWidth}
+        strokeDasharray={strokeStyle.strokeDasharray}
         rx={cornerRadius ?? 0}
         ry={cornerRadius ?? 0}
       />

@@ -7,7 +7,8 @@ import { connection } from "next/server";
 import { memo } from "react";
 import Cursor from "./Cursor";
 import Path from "./Path";
-import { colorToCss } from "@/utils";
+import { createDefaultFill, createDefaultStroke } from "@/utils";
+import { LayerType } from "@/types";
 
 function Cursors() {
   const ids = useOthersConnectionIds();
@@ -36,11 +37,21 @@ function Drafts() {
           return (
             <Path
               key={key}
-              x={0}
-              y={0}
-              points={other.pencilDraft}
-              fill={other.penColor ? colorToCss(other.penColor) : "#CCC"}
-              opacity={100}
+              id={`multiplayer-path-${key}`}
+              layer={{
+                type: LayerType.Path,
+                x: 0,
+                y: 0,
+                width: 0,
+                height: 0,
+                fills: [createDefaultFill(other.penColor || { r: 217, g: 217, b: 217 })],
+                strokes: [createDefaultStroke(other.penColor || { r: 217, g: 217, b: 217 })],
+                opacity: 100,
+                points: other.pencilDraft,
+                visible: true,
+                locked: false,
+              }}
+              onPointerDown={() => {}}
             />
           );
         }

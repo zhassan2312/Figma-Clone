@@ -1,5 +1,5 @@
-import { EllipseLayer, RectangleLayer } from "@/types";
-import { colorToCss } from "@/utils";
+import { EllipseLayer } from "@/types";
+import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
 
 export default function Ellipse({
   id,
@@ -10,11 +10,14 @@ export default function Ellipse({
   layer: EllipseLayer;
   onPointerDown: (e: React.PointerEvent, layerId: string) => void;
 }) {
-  const { x, y, width, height, fill, stroke, opacity, rotation } = layer;
+  const { x, y, width, height, fills, strokes, opacity, rotation } = layer;
 
   const centerX = x + width / 2;
   const centerY = y + height / 2;
   const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+
+  const fillStyle = calculateLayerFillStyle(layer);
+  const strokeStyle = calculateLayerStrokeStyle(layer);
 
   return (
     <g className="group" transform={rotationTransform}>
@@ -34,13 +37,14 @@ export default function Ellipse({
           opacity: layer.visible !== false ? opacity / 100 : 0,
           pointerEvents: layer.locked ? "none" : "auto",
         }}
-        fill={fill ? colorToCss(fill) : "#CCC"}
-        stroke={stroke ? colorToCss(stroke) : "#CCC"}
+        fill={fillStyle}
+        stroke={strokeStyle.stroke}
+        strokeWidth={strokeStyle.strokeWidth}
+        strokeDasharray={strokeStyle.strokeDasharray}
         cx={centerX}
         cy={centerY}
         rx={width / 2}
         ry={height / 2}
-        strokeWidth="1"
       />
     </g>
   );

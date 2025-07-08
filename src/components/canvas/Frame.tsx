@@ -1,4 +1,4 @@
-import { colorToCss } from "@/utils";
+import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
 import { FrameLayer } from "@/types";
 import { useStorage } from "@liveblocks/react";
 import LayerComponent from "./LayerComponent";
@@ -12,12 +12,15 @@ export default function Frame({
   layer: FrameLayer;
   onPointerDown: (e: React.PointerEvent, layerId: string) => void;
 }) {
-  const { x, y, width, height, fill, stroke, opacity, cornerRadius = 0, name, children = [], rotation } = layer;
+  const { x, y, width, height, fills, strokes, opacity, cornerRadius = 0, name, children = [], rotation } = layer;
   const layers = useStorage((root) => root.layers);
 
   const centerX = x + width / 2;
   const centerY = y + height / 2;
   const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+
+  const fillStyle = calculateLayerFillStyle(layer);
+  const strokeStyle = calculateLayerStrokeStyle(layer);
 
   return (
     <g key={id}>
@@ -48,10 +51,10 @@ export default function Frame({
           height={height}
           rx={cornerRadius}
           ry={cornerRadius}
-          fill={fill ? colorToCss(fill) : "transparent"}
-          stroke={stroke ? colorToCss(stroke) : "#999"}
-          strokeWidth="1"
-          strokeDasharray="none"
+          fill={fillStyle}
+          stroke={strokeStyle.stroke}
+          strokeWidth={strokeStyle.strokeWidth}
+          strokeDasharray={strokeStyle.strokeDasharray}
           opacity={layer.visible !== false ? opacity / 100 : 0}
           style={{
             pointerEvents: layer.locked ? "none" : "auto",

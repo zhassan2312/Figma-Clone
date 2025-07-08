@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { colorToCss } from "@/utils";
+import { calculateLayerStrokeStyle } from "@/utils";
 import { ArrowLayer } from "@/types";
 
 const Arrow = memo(
@@ -17,12 +17,8 @@ const Arrow = memo(
       y, 
       x2, 
       y2, 
-      stroke, 
+      strokes, 
       opacity, 
-      strokeWidth = 2, 
-      isDashed = false, 
-      dashWidth = 5,
-      dashGap = 5,
       arrowStart = false, 
       arrowEnd = true, 
       arrowSize = 10,
@@ -33,6 +29,8 @@ const Arrow = memo(
     const centerX = (x + x2) / 2;
     const centerY = (y + y2) / 2;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+
+    const strokeStyle = calculateLayerStrokeStyle(layer);
 
     // Calculate arrow head points
     const angle = Math.atan2(y2 - y, x2 - x);
@@ -69,9 +67,9 @@ const Arrow = memo(
           y1={y}
           x2={x2}
           y2={y2}
-          stroke={stroke ? colorToCss(stroke) : "#000"}
-          strokeWidth={strokeWidth}
-          strokeDasharray={isDashed ? `${dashWidth},${dashGap}` : "none"}
+          stroke={strokeStyle.stroke}
+          strokeWidth={strokeStyle.strokeWidth}
+          strokeDasharray={strokeStyle.strokeDasharray}
           strokeLinecap="round"
         />
         
@@ -79,8 +77,8 @@ const Arrow = memo(
         {arrowStart && (
           <path
             d={generateArrowHead(true)}
-            stroke={stroke ? colorToCss(stroke) : "#000"}
-            strokeWidth={strokeWidth}
+            stroke={strokeStyle.stroke}
+            strokeWidth={strokeStyle.strokeWidth}
             strokeLinecap="round"
             fill="none"
           />
@@ -88,8 +86,8 @@ const Arrow = memo(
         {arrowEnd && (
           <path
             d={generateArrowHead(false)}
-            stroke={stroke ? colorToCss(stroke) : "#000"}
-            strokeWidth={strokeWidth}
+            stroke={strokeStyle.stroke}
+            strokeWidth={strokeStyle.strokeWidth}
             strokeLinecap="round"
             fill="none"
           />

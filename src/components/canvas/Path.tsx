@@ -1,25 +1,17 @@
 import { getStroke } from "perfect-freehand";
-import { getSvgPathFromStroke } from "@/utils";
+import { getSvgPathFromStroke, calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
+import { PathLayer } from "@/types";
 
 export default function Path({
-  x,
-  y,
-  stroke,
-  fill,
-  opacity,
-  points,
-  rotation,
+  id,
+  layer,
   onPointerDown,
 }: {
-  x: number;
-  y: number;
-  stroke?: string;
-  fill: string;
-  opacity: number;
-  points: number[][];
-  rotation?: number;
-  onPointerDown?: (e: React.PointerEvent) => void;
+  id: string;
+  layer: PathLayer;
+  onPointerDown: (e: React.PointerEvent, layerId: string) => void;
 }) {
+  const { x, y, fills, strokes, opacity, points, rotation } = layer;
   const pathData = getSvgPathFromStroke(
     getStroke(points, {
       size: 16,
@@ -28,6 +20,9 @@ export default function Path({
       streamline: 0.5,
     }),
   );
+
+  const fillStyle = calculateLayerFillStyle(layer);
+  const strokeStyle = calculateLayerStrokeStyle(layer);
 
   // For rotation, we need to calculate the center of the path's bounding box
   // But since paths are complex, we'll use the x,y position as the origin
@@ -45,11 +40,12 @@ export default function Path({
         strokeLinejoin="round"
       />
       <path
-        onPointerDown={onPointerDown}
+        onPointerDown={(e) => onPointerDown(e, id)}
         d={pathData}
-        fill={fill}
-        stroke={stroke ?? "#CCC"}
-        strokeWidth={1}
+        fill={fillStyle}
+        stroke={strokeStyle.stroke}
+        strokeWidth={strokeStyle.strokeWidth}
+        strokeDasharray={strokeStyle.strokeDasharray}
         opacity={`${opacity ?? 100}%`}
       />
     </g>

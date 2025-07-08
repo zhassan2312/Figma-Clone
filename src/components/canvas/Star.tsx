@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { colorToCss } from "@/utils";
+import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
 import { StarLayer } from "@/types";
 
 const Star = memo(
@@ -12,13 +12,16 @@ const Star = memo(
     layer: StarLayer;
     onPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
-    const { x, y, width, height, fill, stroke, opacity, vertices, innerRadius, rotation } = layer;
+    const { x, y, width, height, fills, strokes, opacity, vertices, innerRadius, rotation } = layer;
 
     const centerX = x + width / 2;
     const centerY = y + height / 2;
     const outerRadius = Math.min(width, height) / 2;
     const innerRadiusActual = outerRadius * innerRadius;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+
+    const fillStyle = calculateLayerFillStyle(layer);
+    const strokeStyle = calculateLayerStrokeStyle(layer);
 
     // Generate star path
     const generateStarPath = () => {
@@ -53,9 +56,10 @@ const Star = memo(
       >
         <path
           d={generateStarPath()}
-          fill={fill ? colorToCss(fill) : "#CCC"}
-          stroke={stroke ? colorToCss(stroke) : "#CCC"}
-          strokeWidth={1}
+          fill={fillStyle}
+          stroke={strokeStyle.stroke}
+          strokeWidth={strokeStyle.strokeWidth}
+          strokeDasharray={strokeStyle.strokeDasharray}
           transform={rotationTransform}
         />
       </g>

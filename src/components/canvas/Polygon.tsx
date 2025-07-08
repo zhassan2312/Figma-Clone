@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { colorToCss } from "@/utils";
+import { calculateLayerFillStyle, calculateLayerStrokeStyle } from "@/utils";
 import { PolygonLayer } from "@/types";
 
 const Polygon = memo(
@@ -12,11 +12,14 @@ const Polygon = memo(
     layer: PolygonLayer;
     onPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
-    const { x, y, width, height, fill, stroke, opacity, sides = 6, rotation } = layer;
+    const { x, y, width, height, fills, strokes, opacity, sides = 6, rotation } = layer;
 
     const centerX = x + width / 2;
     const centerY = y + height / 2;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+
+    const fillStyle = calculateLayerFillStyle(layer);
+    const strokeStyle = calculateLayerStrokeStyle(layer);
 
     // Generate polygon points
     const generatePolygonPoints = () => {
@@ -45,9 +48,10 @@ const Polygon = memo(
             pointerEvents: layer.locked ? "none" : "auto",
           }}
           points={generatePolygonPoints()}
-          fill={fill ? colorToCss(fill) : "transparent"}
-          stroke={stroke ? colorToCss(stroke) : "#000"}
-          strokeWidth="1"
+          fill={fillStyle}
+          stroke={strokeStyle.stroke}
+          strokeWidth={strokeStyle.strokeWidth}
+          strokeDasharray={strokeStyle.strokeDasharray}
         />
       </g>
     );

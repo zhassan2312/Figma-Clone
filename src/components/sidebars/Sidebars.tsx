@@ -18,6 +18,7 @@ import LayerButton from "./LayerButton";
 import NumberInput from "./NumberInput";
 import { BsCircleHalf } from "react-icons/bs";
 import ColorPicker from "./ColorPicker";
+import FillStrokeControl, { FillStrokeControlProps } from "./FillStrokeControl";
 import Dropdown from "./Dropdown";
 import UserAvatar from "./UserAvatar";
 import { User } from "@prisma/client";
@@ -80,9 +81,15 @@ export default function Sidebars({
         rotation?: number;
         fill?: string;
         stroke?: string;
+        fills?: any[];
+        strokes?: any[];
         fontSize?: number;
         fontWeight?: number;
         fontFamily?: string;
+        textAlign?: 'left' | 'center' | 'right' | 'justify';
+        textDecoration?: 'none' | 'underline' | 'line-through';
+        letterSpacing?: number;
+        lineHeight?: number;
         name?: string;
       },
     ) => {
@@ -106,6 +113,8 @@ export default function Sidebars({
           ...(updates.stroke !== undefined && {
             stroke: hexToRgb(updates.stroke),
           }),
+          ...(updates.fills !== undefined && { fills: updates.fills }),
+          ...(updates.strokes !== undefined && { strokes: updates.strokes }),
           ...(updates.fontSize !== undefined && { fontSize: updates.fontSize }),
           ...(updates.fontWeight !== undefined && {
             fontWeight: updates.fontWeight,
@@ -113,6 +122,10 @@ export default function Sidebars({
           ...(updates.fontFamily !== undefined && {
             fontFamily: updates.fontFamily,
           }),
+          ...(updates.textAlign !== undefined && { textAlign: updates.textAlign }),
+          ...(updates.textDecoration !== undefined && { textDecoration: updates.textDecoration }),
+          ...(updates.letterSpacing !== undefined && { letterSpacing: updates.letterSpacing }),
+          ...(updates.lineHeight !== undefined && { lineHeight: updates.lineHeight }),
           ...(updates.name !== undefined && { name: updates.name }),
         });
       }
@@ -867,47 +880,28 @@ export default function Sidebars({
                 </>
               )}
               
-              {/* Fill section - only for layers that have fill property */}
+              {/* Fill and Stroke section - for shapes that support fills/strokes */}
               {(layer.type === LayerType.Rectangle || 
                 layer.type === LayerType.Ellipse || 
                 layer.type === LayerType.Frame || 
                 layer.type === LayerType.Star || 
                 layer.type === LayerType.Polygon || 
-                layer.type === LayerType.Text) && (
-                <>
-                  <div className="border-b border-gray-200" />
-                  <div className="flex flex-col gap-2 p-4">
-                    <span className="mb-2 text-[11px] font-medium">Fill</span>
-                    <ColorPicker
-                      value={("fill" in layer) ? colorToCss(layer.fill) : "#ffffff"}
-                      onChange={(color) => {
-                        updateLayer({ fill: color });
-                      }}
-                    />
-                  </div>
-                </>
+                layer.type === LayerType.Text || 
+                layer.type === LayerType.Path) && (
+                <FillStrokeControl
+                  layer={layer}
+                  onChange={(updates: any) => updateLayer(updates)}
+                />
               )}
               
-              {/* Stroke section - for all shapes including frames */}
-              {(layer.type === LayerType.Rectangle || 
-                layer.type === LayerType.Ellipse || 
-                layer.type === LayerType.Frame || 
-                layer.type === LayerType.Star || 
-                layer.type === LayerType.Line || 
-                layer.type === LayerType.Arrow || 
-                layer.type === LayerType.Polygon) && (
-                <>
-                  <div className="border-b border-gray-200" />
-                  <div className="flex flex-col gap-2 p-4">
-                    <span className="mb-2 text-[11px] font-medium">Stroke</span>
-                    <ColorPicker
-                      value={("stroke" in layer) ? colorToCss(layer.stroke) : "#000000"}
-                      onChange={(color) => {
-                        updateLayer({ stroke: color });
-                      }}
-                    />
-                  </div>
-                </>
+              {/* Stroke only section - for line and arrow */}
+              {(layer.type === LayerType.Line || 
+                layer.type === LayerType.Arrow) && (
+                <FillStrokeControl
+                  layer={layer}
+                  onChange={(updates: any) => updateLayer(updates)}
+                  strokeOnly={true}
+                />
               )}
               {layer.type === LayerType.Text && (
                 <>
@@ -922,10 +916,10 @@ export default function Sidebars({
                         onChange={(value) => {
                           updateLayer({ fontFamily: value });
                         }}
-                        options={["Inter", "Arial", "Times New Roman"]}
+                        options={["Inter", "Arial", "Times New Roman", "Helvetica", "Georgia", "Times", "Courier New"]}
                       />
                       <div className="flex w-full gap-2">
-                        <div className="flex w-full flex-col gap-1">
+                        <div className="flex w-1/2 flex-col gap-1">
                           <p className="text-[9px] font-medium text-gray-500">
                             Size
                           </p>
@@ -935,10 +929,10 @@ export default function Sidebars({
                               updateLayer({ fontSize: number });
                             }}
                             classNames="w-full"
-                            icon={<p>W</p>}
+                            icon={<p>px</p>}
                           />
                         </div>
-                        <div className="flex w-full flex-col gap-1">
+                        <div className="flex w-1/2 flex-col gap-1">
                           <p className="text-[9px] font-medium text-gray-500">
                             Weight
                           </p>
@@ -958,6 +952,100 @@ export default function Sidebars({
                               "800",
                               "900",
                             ]}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Text Alignment */}
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Text Alignment
+                        </p>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => updateLayerProperty(selectedLayer!, "textAlign", "left")}
+                            className={`flex-1 rounded px-2 py-1 text-xs ${(layer as any).textAlign === 'left' || !(layer as any).textAlign ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          >
+                            ⫸
+                          </button>
+                          <button
+                            onClick={() => updateLayerProperty(selectedLayer!, "textAlign", "center")}
+                            className={`flex-1 rounded px-2 py-1 text-xs ${(layer as any).textAlign === 'center' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          >
+                            ⫷⫸
+                          </button>
+                          <button
+                            onClick={() => updateLayerProperty(selectedLayer!, "textAlign", "right")}
+                            className={`flex-1 rounded px-2 py-1 text-xs ${(layer as any).textAlign === 'right' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          >
+                            ⫷
+                          </button>
+                          <button
+                            onClick={() => updateLayerProperty(selectedLayer!, "textAlign", "justify")}
+                            className={`flex-1 rounded px-2 py-1 text-xs ${(layer as any).textAlign === 'justify' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          >
+                            ≡
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Text Decoration */}
+                      <div className="flex flex-col gap-1">
+                        <p className="text-[9px] font-medium text-gray-500">
+                          Text Decoration
+                        </p>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => updateLayerProperty(selectedLayer!, "textDecoration", "none")}
+                            className={`flex-1 rounded px-2 py-1 text-xs ${(layer as any).textDecoration === 'none' || !(layer as any).textDecoration ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          >
+                            None
+                          </button>
+                          <button
+                            onClick={() => updateLayerProperty(selectedLayer!, "textDecoration", "underline")}
+                            className={`flex-1 rounded px-2 py-1 text-xs ${(layer as any).textDecoration === 'underline' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          >
+                            U̲
+                          </button>
+                          <button
+                            onClick={() => updateLayerProperty(selectedLayer!, "textDecoration", "line-through")}
+                            className={`flex-1 rounded px-2 py-1 text-xs ${(layer as any).textDecoration === 'line-through' ? 'bg-blue-500 text-white' : 'bg-gray-100 hover:bg-gray-200'}`}
+                          >
+                            S̶
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* Letter Spacing and Line Height */}
+                      <div className="flex w-full gap-2">
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Letter Spacing
+                          </p>
+                          <NumberInput
+                            value={Math.round((layer as any).letterSpacing || 0)}
+                            min={-5}
+                            max={20}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "letterSpacing", number);
+                            }}
+                            classNames="w-full"
+                            icon={<p>px</p>}
+                          />
+                        </div>
+                        <div className="flex w-1/2 flex-col gap-1">
+                          <p className="text-[9px] font-medium text-gray-500">
+                            Line Height
+                          </p>
+                          <NumberInput
+                            value={Math.round(((layer as any).lineHeight || 1.2) * 100)}
+                            min={50}
+                            max={300}
+                            onChange={(number) => {
+                              updateLayerProperty(selectedLayer!, "lineHeight", number / 100);
+                            }}
+                            classNames="w-full"
+                            icon={<p>%</p>}
                           />
                         </div>
                       </div>

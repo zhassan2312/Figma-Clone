@@ -4,6 +4,24 @@ export type Color = {
   b: number;
 };
 
+export type Fill = {
+  id: string;
+  type: 'solid' | 'gradient' | 'image';
+  color: Color;
+  opacity: number; // 0-100
+  visible: boolean;
+};
+
+export type Stroke = {
+  id: string;
+  color: Color;
+  width: number;
+  opacity: number; // 0-100
+  visible: boolean;
+  position: 'inside' | 'center' | 'outside';
+  dashPattern?: number[]; // For dashed strokes
+};
+
 export type Camera = {
   x: number;
   y: number;
@@ -31,8 +49,8 @@ export type RectangleLayer = {
   y: number;
   height: number;
   width: number;
-  fill: Color;
-  stroke: Color;
+  fills: Fill[];
+  strokes: Stroke[];
   opacity: number;
   cornerRadius?: number;
   rotation?: number; // Rotation in degrees (default: 0)
@@ -48,8 +66,8 @@ export type EllipseLayer = {
   y: number;
   height: number;
   width: number;
-  fill: Color;
-  stroke: Color;
+  fills: Fill[];
+  strokes: Stroke[];
   opacity: number;
   rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
@@ -64,8 +82,8 @@ export type PathLayer = {
   y: number;
   height: number;
   width: number;
-  fill: Color;
-  stroke: Color;
+  fills: Fill[];
+  strokes: Stroke[];
   opacity: number;
   rotation?: number; // Rotation in degrees (default: 0)
   points: number[][];
@@ -85,8 +103,12 @@ export type TextLayer = {
   fontSize: number;
   fontWeight: number;
   fontFamily: string;
-  fill: Color;
-  stroke: Color;
+  textAlign?: 'left' | 'center' | 'right' | 'justify'; // Text alignment (default: 'left')
+  textDecoration?: 'none' | 'underline' | 'line-through'; // Text decoration (default: 'none')
+  letterSpacing?: number; // Letter spacing in pixels (default: 0)
+  lineHeight?: number; // Line height multiplier (default: 1.2)
+  fills: Fill[];
+  strokes: Stroke[];
   opacity: number;
   rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
@@ -101,8 +123,8 @@ export type FrameLayer = {
   y: number;
   height: number;
   width: number;
-  fill: Color;
-  stroke: Color;
+  fills: Fill[];
+  strokes: Stroke[];
   opacity: number;
   cornerRadius?: number;
   rotation?: number; // Rotation in degrees (default: 0)
@@ -135,8 +157,8 @@ export type StarLayer = {
   y: number;
   height: number;
   width: number;
-  fill: Color;
-  stroke: Color;
+  fills: Fill[];
+  strokes: Stroke[];
   opacity: number;
   cornerRadius?: number;
   rotation?: number; // Rotation in degrees (default: 0)
@@ -154,12 +176,8 @@ export type LineLayer = {
   y: number;
   x2: number;
   y2: number;
-  stroke: Color;
+  strokes: Stroke[];
   opacity: number;
-  strokeWidth: number;
-  isDashed: boolean;
-  dashWidth?: number; // Dash width (default: 5)
-  dashGap?: number; // Gap between dashes (default: 5)
   rotation?: number; // Rotation in degrees (default: 0)
   name?: string;
   parentId?: string;
@@ -173,12 +191,8 @@ export type ArrowLayer = {
   y: number;
   x2: number;
   y2: number;
-  stroke: Color;
+  strokes: Stroke[];
   opacity: number;
-  strokeWidth: number;
-  isDashed: boolean;
-  dashWidth?: number; // Dash width (default: 5)
-  dashGap?: number; // Gap between dashes (default: 5)
   arrowStart: boolean; // Arrow head at start
   arrowEnd: boolean; // Arrow head at end
   arrowSize: number; // Size of arrow heads
@@ -195,8 +209,8 @@ export type PolygonLayer = {
   y: number;
   height: number;
   width: number;
-  fill: Color;
-  stroke: Color;
+  fills: Fill[];
+  strokes: Stroke[];
   opacity: number;
   rotation?: number; // Rotation in degrees (default: 0)
   sides: number; // Number of polygon sides (default: 6)

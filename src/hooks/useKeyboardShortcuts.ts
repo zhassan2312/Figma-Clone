@@ -5,6 +5,7 @@ import { useMutation, useSelf, useStorage } from "@liveblocks/react";
 import { LiveObject } from "@liveblocks/client";
 import { nanoid } from "nanoid";
 import { Layer, LayerType, CanvasMode, FrameLayer } from "@/types";
+import { createDefaultFill, createDefaultStroke } from "@/utils";
 import useDeleteLayers from "./useDeleteLayers";
 
 export default function useKeyboardShortcuts({
@@ -316,8 +317,8 @@ export default function useKeyboardShortcuts({
         y: frameY,
         width: frameWidth,
         height: frameHeight,
-        fill: { r: 255, g: 255, b: 255 },
-        stroke: { r: 153, g: 153, b: 153 },
+        fills: [createDefaultFill({ r: 255, g: 255, b: 255 })],
+        strokes: [createDefaultStroke({ r: 153, g: 153, b: 153 })],
         opacity: 100,
         cornerRadius: 0,
         name: frameName,
@@ -426,6 +427,32 @@ export default function useKeyboardShortcuts({
     [selection]
   );
 
+  // Rotate selected layers
+  const rotateSelectedLayers = useMutation(
+    ({ storage, setMyPresence }, deltaRotation: number) => {
+      if (!selection || selection.length === 0) return;
+      
+      const liveLayers = storage.get("layers");
+      
+      selection.forEach(id => {
+        const layer = liveLayers.get(id);
+        if (layer) {
+          const layerData = layer.toObject();
+          const currentRotation = layerData.rotation || 0;
+          const newRotation = (currentRotation + deltaRotation) % 360;
+          const updatedLayer = {
+            ...layerData,
+            rotation: newRotation,
+          };
+          liveLayers.set(id, new LiveObject(updatedLayer));
+        }
+      });
+      
+      console.log("Rotated", selection.length, "layers by", deltaRotation, "degrees");
+    },
+    [selection]
+  );
+
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     // Skip if user is typing in an input field
     const activeElement = document.activeElement;
@@ -444,6 +471,9 @@ export default function useKeyboardShortcuts({
     const shouldPreventDefault = () => {
       if (isCtrlOrCmd) {
         return ["a", "c", "x", "v", "z", "y", "r", "d", "g", "u", "=", "+", "-", "0"].includes(e.key.toLowerCase());
+      }
+      if (isShift && e.key.toLowerCase() === "r") {
+        return true; // Shift+R for rotation
       }
       return ["Delete", "Backspace", "Escape", "f", "F2", "r", "e", "t", "p", "v", "h", "k", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.key);
     };
@@ -517,6 +547,10 @@ export default function useKeyboardShortcuts({
       case "r":
         if (isCtrlOrCmd) {
           history.redo();
+        } else if (isShift) {
+          // Shift+R for rotation
+          e.preventDefault();
+          rotateSelectedLayers(45);
         } else if (setCanvasState) {
           // R key for rectangle tool
           setCanvasState({
@@ -631,6 +665,7 @@ export default function useKeyboardShortcuts({
         break;
 
       case "ArrowUp":
+        e.preventDefault();
         {
           const moveDistance = isShift ? 10 : 1;
           moveSelectedLayers(0, -moveDistance);
@@ -638,6 +673,7 @@ export default function useKeyboardShortcuts({
         break;
 
       case "ArrowDown":
+        e.preventDefault();
         {
           const moveDistance = isShift ? 10 : 1;
           moveSelectedLayers(0, moveDistance);
@@ -645,6 +681,7 @@ export default function useKeyboardShortcuts({
         break;
 
       case "ArrowLeft":
+        e.preventDefault();
         {
           const moveDistance = isShift ? 10 : 1;
           moveSelectedLayers(-moveDistance, 0);
@@ -652,37 +689,10 @@ export default function useKeyboardShortcuts({
         break;
 
       case "ArrowRight":
+        e.preventDefault();
         {
           const moveDistance = isShift ? 10 : 1;
           moveSelectedLayers(moveDistance, 0);
-        }
-        break;
-
-      // Arrow keys for moving layers
-      case "arrowup":
-      case "arrowdown":
-      case "arrowleft":
-      case "arrowright":
-        if (isCtrlOrCmd) {
-          e.preventDefault();
-          const delta = 10; // Move by 10 units
-          let deltaX = 0;
-          let deltaY = 0;
-          switch (e.key.toLowerCase()) {
-            case "arrowup":
-              deltaY = -delta;
-              break;
-            case "arrowdown":
-              deltaY = delta;
-              break;
-            case "arrowleft":
-              deltaX = -delta;
-              break;
-            case "arrowright":
-              deltaX = delta;
-              break;
-          }
-          moveSelectedLayers(deltaX, deltaY);
         }
         break;
     }
@@ -698,6 +708,7 @@ export default function useKeyboardShortcuts({
     wrapInFrame,
     ungroupLayers,
     moveSelectedLayers,
+    rotateSelectedLayers,
     history,
     selection,
     setCanvasState,
@@ -722,5 +733,7 @@ export default function useKeyboardShortcuts({
     groupLayers,
     wrapInFrame,
     ungroupLayers,
+    moveSelectedLayers,
+    rotateSelectedLayers,
   };
 }

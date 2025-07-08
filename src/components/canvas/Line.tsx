@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { colorToCss } from "@/utils";
+import { calculateLayerStrokeStyle } from "@/utils";
 import { LineLayer } from "@/types";
 
 const Line = memo(
@@ -12,12 +12,14 @@ const Line = memo(
     layer: LineLayer;
     onPointerDown: (e: React.PointerEvent, layerId: string) => void;
   }) => {
-    const { x, y, x2, y2, stroke, opacity, strokeWidth = 2, isDashed = false, dashWidth = 5, dashGap = 5, rotation } = layer;
+    const { x, y, x2, y2, strokes, opacity, rotation } = layer;
 
     // Calculate center point for rotation
     const centerX = (x + x2) / 2;
     const centerY = (y + y2) / 2;
     const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+
+    const strokeStyle = calculateLayerStrokeStyle(layer);
 
     return (
       <line
@@ -32,9 +34,9 @@ const Line = memo(
         y1={y}
         x2={x2}
         y2={y2}
-        stroke={stroke ? colorToCss(stroke) : "#000"}
-        strokeWidth={strokeWidth}
-        strokeDasharray={isDashed ? `${dashWidth},${dashGap}` : "none"}
+        stroke={strokeStyle.stroke}
+        strokeWidth={strokeStyle.strokeWidth}
+        strokeDasharray={strokeStyle.strokeDasharray}
         strokeLinecap="round"
         transform={rotationTransform}
       />

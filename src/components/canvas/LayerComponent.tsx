@@ -32,14 +32,9 @@ const LayerComponent = memo(
       case LayerType.Path:
         return (
           <Path
-            onPointerDown={(e: React.PointerEvent) => onLayerPointerDown(e, id)}
-            points={layer.points}
-            x={layer.x}
-            y={layer.y}
-            fill={layer.fill ? colorToCss(layer.fill) : "#CCC"}
-            stroke={layer.stroke ? colorToCss(layer.stroke) : "#CCC"}
-            opacity={layer.opacity}
-            rotation={(layer as any).rotation}
+            id={id}
+            layer={layer}
+            onPointerDown={onLayerPointerDown}
           />
         );
       case LayerType.Rectangle:
