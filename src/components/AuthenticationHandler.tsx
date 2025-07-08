@@ -1,41 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { resendVerificationCode } from "@/app/actions/auth";
+import { useLoading } from "./LoadingProvider";
+import { LoadingSpinner } from "./common";
 
 interface AuthenticationHandlerProps {
   userEmail: string;
 }
 
 export default function AuthenticationHandler({ userEmail }: AuthenticationHandlerProps) {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
   const router = useRouter();
+  const { showGlobalLoading, hideGlobalLoading, showToast } = useLoading();
 
   const handleResendVerification = async () => {
-    setIsLoading(true);
-    setMessage("");
-
-    try {
-      const result = await resendVerificationCode(userEmail);
-      if (result === "success") {
-        setMessage("Verification email sent successfully!");
-        // Navigate to verification page after a brief delay
-        setTimeout(() => {
-          router.push(`/verification/${encodeURIComponent(userEmail)}`);
-        }, 1500);
-      } else {
-        setMessage(result || "Failed to send verification email");
+    startTransition(async () => {
+      setMessage("");
+      
+      try {
+        showGlobalLoading("Sending verification email...");
+        const result = await resendVerificationCode(userEmail);
+        
+        if (result === "success") {
+          setMessage("Verification email sent successfully!");
+          showToast("Verification email sent successfully!", "success");
+          
+          // Navigate to verification page after a brief delay
+          setTimeout(() => {
+            router.push(`/verification/${encodeURIComponent(userEmail)}`);
+          }, 1500);
+        } else {
+          const errorMessage = result || "Failed to send verification email";
+          setMessage(errorMessage);
+          showToast(errorMessage, "error");
+        }
+      } catch (error) {
+        const errorMessage = "An error occurred. Please try again.";
+        setMessage(errorMessage);
+        showToast(errorMessage, "error");
+      } finally {
+        hideGlobalLoading();
       }
-    } catch (error) {
-      setMessage("An error occurred. Please try again.");
-    } finally {
-      setIsLoading(false);
-    }
+    });
   };
 
   const handleGoToVerification = () => {
+    showGlobalLoading("Navigating to verification page...");
     router.push(`/verification/${encodeURIComponent(userEmail)}`);
   };
 
@@ -64,10 +77,11 @@ export default function AuthenticationHandler({ userEmail }: AuthenticationHandl
 
           <button
             onClick={handleResendVerification}
-            disabled={isLoading}
-            className="w-full rounded-md border border-gray-300 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100"
+            disabled={isPending}
+            className="w-full rounded-md border border-gray-300 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none disabled:cursor-not-allowed disabled:bg-gray-100 flex items-center justify-center gap-2"
           >
-            {isLoading ? "Sending..." : "Resend Verification Email"}
+            {isPending && <LoadingSpinner size="small" />}
+            {isPending ? "Sending..." : "Resend Verification Email"}
           </button>
         </div>
 

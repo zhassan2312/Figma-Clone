@@ -2,10 +2,12 @@
 
 import { Room } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import React, { useRef } from "react";
+import React, { useRef, useTransition } from "react";
 import { useEffect, useMemo, useState } from "react";
 import ConfirmationModal from "./ConfirmationModal";
 import { deleteRoom, updateRoomTitle } from "~/app/actions/rooms";
+import { useLoading } from "../LoadingProvider";
+import { LoadingSpinner } from "../common";
 
 const PASTEL_COLORS = [
   "rgb(255, 182, 193)", // pink
@@ -122,6 +124,8 @@ function SingleRoom({
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(title);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const { showGlobalLoading, hideGlobalLoading, showToast } = useLoading();
 
   const handleKeyPress = async (
     event: React.KeyboardEvent<HTMLInputElement>,
@@ -129,18 +133,55 @@ function SingleRoom({
     if (event.key === "Enter") {
       event.preventDefault();
       setIsEditing(false);
-      await updateRoomTitle(editedTitle, id);
+      
+      startTransition(async () => {
+        try {
+          showGlobalLoading("Updating room title...");
+          await updateRoomTitle(editedTitle, id);
+          showToast("Room title updated successfully!", "success");
+        } catch (error) {
+          const message = error instanceof Error ? error.message : "Failed to update room title";
+          showToast(message, "error");
+          setEditedTitle(title); // Reset on error
+        } finally {
+          hideGlobalLoading();
+        }
+      });
     }
   };
 
   const handleBlur = async () => {
     setIsEditing(false);
-    await updateRoomTitle(editedTitle, id);
+    
+    startTransition(async () => {
+      try {
+        showGlobalLoading("Updating room title...");
+        await updateRoomTitle(editedTitle, id);
+        showToast("Room title updated successfully!", "success");
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to update room title";
+        showToast(message, "error");
+        setEditedTitle(title); // Reset on error
+      } finally {
+        hideGlobalLoading();
+      }
+    });
   };
 
   const confirmDelete = async () => {
-    await deleteRoom(id);
-    setShowConfirmationModal(false);
+    startTransition(async () => {
+      try {
+        showGlobalLoading("Deleting room...");
+        await deleteRoom(id);
+        showToast("Room deleted successfully!", "success");
+        setShowConfirmationModal(false);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Failed to delete room";
+        showToast(message, "error");
+      } finally {
+        hideGlobalLoading();
+      }
+    });
   };
 
   useEffect(() => {
@@ -164,9 +205,15 @@ function SingleRoom({
         onDoubleClick={navigateTo}
         onClick={select}
         style={{ backgroundColor: color }}
-        className={`flex h-56 w-96 cursor-pointer items-center justify-center rounded-md ${selected ? "border-2 border-blue-500" : "border border-[#e8e8e8]"}`}
+        className={`flex h-56 w-96 cursor-pointer items-center justify-center rounded-md relative ${selected ? "border-2 border-blue-500" : "border border-[#e8e8e8]"} ${isPending ? "opacity-50" : ""}`}
       >
-        <p className="text-md select-none font-medium">{title}</p>
+        {isPending ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-75 rounded-md">
+            <LoadingSpinner size="medium" />
+          </div>
+        ) : (
+          <p className="text-md select-none font-medium">{title}</p>
+        )}
       </div>
       {isEditing && canEdit ? (
         <input
@@ -177,11 +224,12 @@ function SingleRoom({
           onKeyPress={handleKeyPress}
           autoFocus
           className="w-full"
+          disabled={isPending}
         />
       ) : (
         <p
-          onClick={() => setIsEditing(true)}
-          className="mt-2 select-none text-[13px] font-medium"
+          onClick={() => !isPending && setIsEditing(true)}
+          className={`mt-2 select-none text-[13px] font-medium ${isPending ? "cursor-not-allowed" : "cursor-pointer"}`}
         >
           {title}
         </p>

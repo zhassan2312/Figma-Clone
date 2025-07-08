@@ -327,3 +327,431 @@ export function IconButton({
     </Tooltip>
   ) : button;
 }
+
+// Global loading overlay component
+export function GlobalLoadingOverlay({
+  isVisible,
+  message = "Processing your request...",
+  progress,
+}: {
+  isVisible: boolean;
+  message?: string;
+  progress?: number;
+}) {
+  if (!isVisible) return null;
+  
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm">
+      <div className="bg-white rounded-lg p-8 max-w-sm w-full mx-4 shadow-2xl">
+        <div className="flex flex-col items-center space-y-4">
+          <LoadingSpinner size="large" />
+          <div className="text-center">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">{message}</h3>
+            {progress !== undefined && (
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className="bg-blue-600 h-2 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+                />
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Skeleton loader component
+export function SkeletonLoader({
+  width = "100%",
+  height = "1rem",
+  className = "",
+}: {
+  width?: string;
+  height?: string;
+  className?: string;
+}) {
+  return (
+    <div 
+      className={`animate-pulse bg-gray-200 rounded ${className}`}
+      style={{ width, height }}
+    />
+  );
+}
+
+// Loading button component
+export function LoadingButton({
+  children,
+  onClick,
+  loading = false,
+  loadingText = "Loading...",
+  variant = "primary",
+  size = "medium",
+  disabled = false,
+  className = "",
+}: {
+  children: React.ReactNode;
+  onClick: () => void | Promise<void>;
+  loading?: boolean;
+  loadingText?: string;
+  variant?: "primary" | "secondary" | "danger" | "ghost";
+  size?: "small" | "medium" | "large";
+  disabled?: boolean;
+  className?: string;
+}) {
+  const [isLoading, setIsLoading] = React.useState(loading);
+  
+  const handleClick = async () => {
+    if (isLoading || disabled) return;
+    
+    setIsLoading(true);
+    try {
+      await onClick();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  return (
+    <Button
+      onClick={handleClick}
+      variant={variant}
+      size={size}
+      disabled={disabled || isLoading}
+      className={className}
+    >
+      {isLoading ? (
+        <div className="flex items-center space-x-2">
+          <LoadingSpinner size="small" />
+          <span>{loadingText}</span>
+        </div>
+      ) : (
+        children
+      )}
+    </Button>
+  );
+}
+
+// Progress bar component
+export function ProgressBar({
+  value,
+  max = 100,
+  showPercentage = true,
+  className = "",
+  color = "blue",
+}: {
+  value: number;
+  max?: number;
+  showPercentage?: boolean;
+  className?: string;
+  color?: "blue" | "green" | "red" | "yellow";
+}) {
+  const percentage = Math.min(100, Math.max(0, (value / max) * 100));
+  
+  const colorClasses = {
+    blue: "bg-blue-600",
+    green: "bg-green-600",
+    red: "bg-red-600",
+    yellow: "bg-yellow-600",
+  };
+  
+  return (
+    <div className={`w-full ${className}`}>
+      <div className="flex justify-between items-center mb-1">
+        {showPercentage && (
+          <span className="text-sm font-medium text-gray-700">
+            {Math.round(percentage)}%
+          </span>
+        )}
+      </div>
+      <div className="w-full bg-gray-200 rounded-full h-2">
+        <div 
+          className={`h-2 rounded-full transition-all duration-300 ease-out ${colorClasses[color]}`}
+          style={{ width: `${percentage}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// Toast notification component
+export function Toast({
+  message,
+  type = "info",
+  isVisible,
+  onClose,
+  duration = 5000,
+}: {
+  message: string;
+  type?: "success" | "error" | "warning" | "info";
+  isVisible: boolean;
+  onClose: () => void;
+  duration?: number;
+}) {
+  React.useEffect(() => {
+    if (isVisible && duration > 0) {
+      const timer = setTimeout(onClose, duration);
+      return () => clearTimeout(timer);
+    }
+  }, [isVisible, duration, onClose]);
+  
+  if (!isVisible) return null;
+  
+  const typeStyles = {
+    success: "bg-green-50 border-green-200 text-green-800",
+    error: "bg-red-50 border-red-200 text-red-800",
+    warning: "bg-yellow-50 border-yellow-200 text-yellow-800",
+    info: "bg-blue-50 border-blue-200 text-blue-800",
+  };
+  
+  const iconMap = {
+    success: "✓",
+    error: "✕",
+    warning: "⚠",
+    info: "ℹ",
+  };
+  
+  return (
+    <div className="fixed top-4 right-4 z-[9999] animate-in slide-in-from-right">
+      <div className={`border rounded-lg p-4 shadow-lg max-w-sm ${typeStyles[type]}`}>
+        <div className="flex items-center space-x-3">
+          <span className="text-lg">{iconMap[type]}</span>
+          <p className="text-sm font-medium">{message}</p>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            ✕
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Loading state wrapper component
+export function LoadingWrapper({
+  children,
+  loading,
+  error,
+  loadingComponent,
+  errorComponent,
+  emptyComponent,
+  isEmpty = false,
+}: {
+  children: React.ReactNode;
+  loading: boolean;
+  error?: string | null;
+  loadingComponent?: React.ReactNode;
+  errorComponent?: React.ReactNode;
+  emptyComponent?: React.ReactNode;
+  isEmpty?: boolean;
+}) {
+  if (loading) {
+    return loadingComponent || (
+      <div className="flex items-center justify-center p-8">
+        <LoadingSpinner size="large" />
+      </div>
+    );
+  }
+  
+  if (error) {
+    return errorComponent || (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="text-red-500 text-4xl mb-4">⚠</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">Something went wrong</h3>
+          <p className="text-gray-600">{error}</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (isEmpty) {
+    return emptyComponent || (
+      <div className="flex items-center justify-center p-8">
+        <div className="text-center">
+          <div className="text-gray-400 text-4xl mb-4">📭</div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No data found</h3>
+          <p className="text-gray-600">There's nothing to display at the moment.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return <>{children}</>;
+}
+
+// Card with loading state
+export function LoadingCard({
+  loading = false,
+  children,
+  className = "",
+}: {
+  loading?: boolean;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`relative bg-white rounded-lg border p-6 ${className}`}>
+      {loading && (
+        <div className="absolute inset-0 bg-white bg-opacity-75 rounded-lg flex items-center justify-center z-10">
+          <LoadingSpinner />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// Inline loading text
+export function LoadingText({
+  text = "Loading",
+  dotCount = 3,
+}: {
+  text?: string;
+  dotCount?: number;
+}) {
+  const [dots, setDots] = React.useState('');
+  
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setDots(prev => prev.length >= dotCount ? '' : prev + '.');
+    }, 500);
+    
+    return () => clearInterval(interval);
+  }, [dotCount]);
+  
+  return <span>{text}{dots}</span>;
+}
+
+// Pull to refresh component
+export function PullToRefresh({
+  children,
+  onRefresh,
+  refreshing = false,
+}: {
+  children: React.ReactNode;
+  onRefresh: () => Promise<void>;
+  refreshing?: boolean;
+}) {
+  const [isPulling, setIsPulling] = React.useState(false);
+  const [pullDistance, setPullDistance] = React.useState(0);
+  const startY = React.useRef(0);
+  const threshold = 100;
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    startY.current = e.touches[0].clientY;
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const currentY = e.touches[0].clientY;
+    const distance = currentY - startY.current;
+    
+    if (distance > 0 && window.scrollY === 0) {
+      setIsPulling(true);
+      setPullDistance(Math.min(distance, threshold * 1.5));
+    }
+  };
+  
+  const handleTouchEnd = async () => {
+    if (pullDistance >= threshold) {
+      await onRefresh();
+    }
+    setIsPulling(false);
+    setPullDistance(0);
+  };
+  
+  return (
+    <div
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      style={{
+        transform: isPulling ? `translateY(${pullDistance * 0.5}px)` : undefined,
+        transition: !isPulling ? 'transform 0.3s ease-out' : undefined,
+      }}
+    >
+      {(isPulling || refreshing) && (
+        <div className="absolute top-0 left-0 right-0 flex justify-center pt-4">
+          <LoadingSpinner size="small" />
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+// Full page loader component
+export function PageLoader({
+  message = "Loading...",
+  showLogo = true,
+}: {
+  message?: string;
+  showLogo?: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
+      <div className="text-center">
+        {showLogo && (
+          <div className="mb-8">
+            <div className="w-16 h-16 mx-auto mb-4 bg-blue-600 rounded-lg flex items-center justify-center">
+              <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" />
+              </svg>
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900">Figma Clone</h1>
+          </div>
+        )}
+        <LoadingSpinner size="large" />
+        <p className="mt-4 text-gray-600">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+// Navigation loading bar
+export function NavigationLoadingBar({
+  isVisible,
+  progress = 0,
+}: {
+  isVisible: boolean;
+  progress?: number;
+}) {
+  if (!isVisible) return null;
+  
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 h-1 bg-gray-200">
+      <div 
+        className="h-full bg-blue-600 transition-all duration-300 ease-out"
+        style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
+      />
+    </div>
+  );
+}
+
+// Inline loading placeholder
+export function InlineLoader({
+  width = "100%",
+  height = "20px",
+  lines = 3,
+  className = "",
+}: {
+  width?: string;
+  height?: string;
+  lines?: number;
+  className?: string;
+}) {
+  return (
+    <div className={`space-y-2 ${className}`}>
+      {Array.from({ length: lines }).map((_, i) => (
+        <SkeletonLoader 
+          key={i} 
+          width={i === lines - 1 ? "60%" : width} 
+          height={height} 
+        />
+      ))}
+    </div>
+  );
+}

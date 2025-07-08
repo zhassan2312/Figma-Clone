@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Point, XYWH, Color } from '@/types';
-import { clampNumber, parseNumericInput, getDistance, getAngle } from '@/utils';
+import { clampNumber, parseNumericInput, getDistance, getAngle, generateId } from '@/utils';
 
 // Hook for managing numeric input with validation
 export function useNumericInput(
@@ -276,5 +276,245 @@ export function useToggle(initialValue: boolean = false) {
     setTrue,
     setFalse,
     setValue
+  };
+}
+
+// Hook for managing loading states
+export function useLoadingState(initialState: boolean = false) {
+  const [isLoading, setIsLoading] = useState(initialState);
+  const [error, setError] = useState<string | null>(null);
+  const [progress, setProgress] = useState<number>(0);
+
+  const startLoading = useCallback(() => {
+    setIsLoading(true);
+    setError(null);
+    setProgress(0);
+  }, []);
+
+  const stopLoading = useCallback(() => {
+    setIsLoading(false);
+    setProgress(100);
+  }, []);
+
+  const setLoadingError = useCallback((errorMessage: string) => {
+    setIsLoading(false);
+    setError(errorMessage);
+    setProgress(0);
+  }, []);
+
+  const updateProgress = useCallback((value: number) => {
+    setProgress(Math.min(100, Math.max(0, value)));
+  }, []);
+
+  const withLoading = useCallback(async <T,>(
+    asyncFunction: () => Promise<T>,
+    onProgress?: (progress: number) => void
+  ): Promise<T | null> => {
+    startLoading();
+    try {
+      const result = await asyncFunction();
+      stopLoading();
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setLoadingError(errorMessage);
+      return null;
+    }
+  }, [startLoading, stopLoading, setLoadingError]);
+
+  return {
+    isLoading,
+    error,
+    progress,
+    startLoading,
+    stopLoading,
+    setLoadingError,
+    updateProgress,
+    withLoading,
+    hasError: !!error,
+  };
+}
+
+// Hook for managing toast notifications
+export function useToast() {
+  const [toasts, setToasts] = useState<Array<{
+    id: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    duration?: number;
+  }>>([]);
+
+  const showToast = useCallback((
+    message: string, 
+    type: 'success' | 'error' | 'warning' | 'info' = 'info',
+    duration: number = 5000
+  ) => {
+    const id = generateId();
+    setToasts(prev => [...prev, { id, message, type, duration }]);
+    
+    if (duration > 0) {
+      setTimeout(() => {
+        setToasts(prev => prev.filter(toast => toast.id !== id));
+      }, duration);
+    }
+  }, []);
+
+  const hideToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  }, []);
+
+  const clearAllToasts = useCallback(() => {
+    setToasts([]);
+  }, []);
+
+  // Convenience methods
+  const showSuccess = useCallback((message: string, duration?: number) => {
+    showToast(message, 'success', duration);
+  }, [showToast]);
+
+  const showError = useCallback((message: string, duration?: number) => {
+    showToast(message, 'error', duration);
+  }, [showToast]);
+
+  const showWarning = useCallback((message: string, duration?: number) => {
+    showToast(message, 'warning', duration);
+  }, [showToast]);
+
+  const showInfo = useCallback((message: string, duration?: number) => {
+    showToast(message, 'info', duration);
+  }, [showToast]);
+
+  return {
+    toasts,
+    showToast,
+    hideToast,
+    clearAllToasts,
+    showSuccess,
+    showError,
+    showWarning,
+    showInfo,
+  };
+}
+
+// Hook for managing global loading state
+export function useGlobalLoading() {
+  const [isGlobalLoading, setIsGlobalLoading] = useState(false);
+  const [globalMessage, setGlobalMessage] = useState('Processing...');
+  const [globalProgress, setGlobalProgress] = useState<number | undefined>(undefined);
+
+  const showGlobalLoading = useCallback((message?: string, progress?: number) => {
+    setIsGlobalLoading(true);
+    if (message) setGlobalMessage(message);
+    if (progress !== undefined) setGlobalProgress(progress);
+  }, []);
+
+  const hideGlobalLoading = useCallback(() => {
+    setIsGlobalLoading(false);
+    setGlobalProgress(undefined);
+  }, []);
+
+  const updateGlobalProgress = useCallback((progress: number) => {
+    setGlobalProgress(progress);
+  }, []);
+
+  return {
+    isGlobalLoading,
+    globalMessage,
+    globalProgress,
+    showGlobalLoading,
+    hideGlobalLoading,
+    updateGlobalProgress,
+  };
+}
+
+// Hook for async operations with automatic loading states
+export function useAsync<T, P extends any[]>(
+  asyncFunction: (...args: P) => Promise<T>,
+  deps: React.DependencyList = []
+) {
+  const [data, setData] = useState<T | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const execute = useCallback(async (...args: P) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      const result = await asyncFunction(...args);
+      setData(result);
+      return result;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, deps);
+
+  const reset = useCallback(() => {
+    setData(null);
+    setError(null);
+    setLoading(false);
+  }, []);
+
+  return {
+    data,
+    loading,
+    error,
+    execute,
+    reset,
+    hasData: data !== null,
+    hasError: !!error,
+  };
+}
+
+// Hook for retry functionality
+export function useRetry(maxRetries: number = 3, delay: number = 1000) {
+  const [retryCount, setRetryCount] = useState(0);
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const retry = useCallback(async <T>(operation: () => Promise<T>): Promise<T> => {
+    let currentRetry = 0;
+    
+    while (currentRetry <= maxRetries) {
+      try {
+        setRetryCount(currentRetry);
+        
+        if (currentRetry > 0) {
+          setIsRetrying(true);
+          await new Promise(resolve => setTimeout(resolve, delay * currentRetry));
+        }
+        
+        const result = await operation();
+        setIsRetrying(false);
+        setRetryCount(0);
+        return result;
+      } catch (error) {
+        currentRetry++;
+        
+        if (currentRetry > maxRetries) {
+          setIsRetrying(false);
+          setRetryCount(0);
+          throw error;
+        }
+      }
+    }
+    
+    throw new Error('Max retries exceeded');
+  }, [maxRetries, delay]);
+
+  const reset = useCallback(() => {
+    setRetryCount(0);
+    setIsRetrying(false);
+  }, []);
+
+  return {
+    retry,
+    retryCount,
+    isRetrying,
+    reset,
+    canRetry: retryCount < maxRetries,
   };
 }

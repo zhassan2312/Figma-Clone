@@ -5,6 +5,8 @@ import { type Metadata, type Viewport } from "next";
 import OfflineWarning from "../components/OfflineWarning";
 import PWAInstaller from "../components/PWAInstaller";
 import SessionProvider from "../components/SessionProvider";
+import { LoadingProvider } from "../components/LoadingProvider";
+import { NavigationLoader } from "../components/NavigationLoader";
 
 export const metadata: Metadata = {
   title: "Figma",
@@ -40,9 +42,12 @@ export default function RootLayout({
       </head>
       <body className="overflow-hidden overscroll-none">
         <SessionProvider>
-          <PWAInstaller />
-          <OfflineWarning />
-          {children}
+          <LoadingProvider>
+            <NavigationLoader />
+            <PWAInstaller />
+            <OfflineWarning />
+            {children}
+          </LoadingProvider>
         </SessionProvider>
       </body>
     </html>
