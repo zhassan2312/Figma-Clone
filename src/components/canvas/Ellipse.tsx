@@ -1,5 +1,5 @@
 import { EllipseLayer } from "@/types";
-import { calculateFillStyle, calculateStrokeStyle, getLayerFills, getLayerStrokes } from "@/utils";
+import { getLayerCenter, getLayerRotationTransform, getLayerStyles } from "@/utils";
 
 export default function Ellipse({
   id,
@@ -12,18 +12,15 @@ export default function Ellipse({
 }) {
   const { x, y, width, height, fills, strokes, opacity, rotation } = layer;
 
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
-  const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
-
-  const fillStyle = calculateFillStyle(getLayerFills(layer));
-  const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
+  const center = getLayerCenter(layer);
+  const rotationTransform = getLayerRotationTransform(layer);
+  const { fillStyle, strokeStyle } = getLayerStyles(layer);
 
   return (
     <g className="group" transform={rotationTransform}>
       <ellipse
-        cx={centerX}
-        cy={centerY}
+        cx={center.x}
+        cy={center.y}
         rx={width / 2}
         ry={height / 2}
         fill="none"
@@ -41,8 +38,8 @@ export default function Ellipse({
         stroke={strokeStyle.stroke}
         strokeWidth={strokeStyle.strokeWidth}
         strokeDasharray={strokeStyle.strokeDasharray}
-        cx={centerX}
-        cy={centerY}
+        cx={center.x}
+        cy={center.y}
         rx={width / 2}
         ry={height / 2}
       />

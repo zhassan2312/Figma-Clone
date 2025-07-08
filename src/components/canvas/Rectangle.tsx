@@ -1,5 +1,5 @@
 import { RectangleLayer } from "@/types";
-import { calculateFillStyle, calculateStrokeStyle, getLayerFills, getLayerStrokes } from "@/utils";
+import { getLayerCenter, getLayerRotationTransform, getLayerStyles } from "@/utils";
 
 export default function Rectangle({
   id,
@@ -12,12 +12,8 @@ export default function Rectangle({
 }) {
   const { x, y, width, height, opacity, cornerRadius, rotation } = layer;
 
-  const centerX = x + width / 2;
-  const centerY = y + height / 2;
-  const rotationTransform = rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
-
-  const fillStyle = calculateFillStyle(getLayerFills(layer));
-  const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
+  const rotationTransform = getLayerRotationTransform(layer);
+  const { fillStyle, strokeStyle } = getLayerStyles(layer);
 
   return (
     <g key={id} className="group" transform={rotationTransform}>

@@ -2,7 +2,8 @@ import { useSelf, useStorage } from "@liveblocks/react";
 import { memo, useEffect, useRef, useState } from "react";
 import useSelectionBounds from "@/hooks/useSelectionBounds";
 import { CanvasMode, LayerType, Side, XYWH, Point } from "@/types";
-import { pointerEventToCanvasPoint } from "@/utils";
+import { pointerEventToCanvasPoint, getLayerCenter, getRotationTransform } from "@/utils";
+import { UI_CONSTANTS } from "@/constants";
 
 const SelectionBox = memo(
   ({
@@ -46,13 +47,13 @@ const SelectionBox = memo(
     const padding = 16;
 
     // Adjust handle width based on zoom level
-    const handleWidth = Math.max(6, Math.min(12, 8 / (camera?.zoom || 1)));
+    const handleWidth = Math.max(6, Math.min(12, UI_CONSTANTS.SELECTION.HANDLE_SIZE / (camera?.zoom || 1)));
     const rotateHandleDistance = Math.max(12, 16 / (camera?.zoom || 1));
 
     // Calculate center point for rotation
     const centerX = bounds ? bounds.x + bounds.width / 2 : 0;
     const centerY = bounds ? bounds.y + bounds.height / 2 : 0;
-    const rotationTransform = selectedLayerRotation ? `rotate(${selectedLayerRotation} ${centerX} ${centerY})` : '';
+    const rotationTransform = selectedLayerRotation ? getRotationTransform(selectedLayerRotation, centerX, centerY) : '';
 
     // Calculate actual text dimensions for text layers
     useEffect(() => {
@@ -112,11 +113,13 @@ const SelectionBox = memo(
           <g transform={rotationTransform}>
             {/* Selection line */}
             <line
-              className="pointer-events-none stroke-[#0b99ff] stroke-[2px]"
+              className="pointer-events-none"
               x1={lineCoords.x1}
               y1={lineCoords.y1}
               x2={lineCoords.x2}
               y2={lineCoords.y2}
+              stroke={UI_CONSTANTS.SELECTION.STROKE}
+              strokeWidth={UI_CONSTANTS.SELECTION.STROKE_WIDTH * 2}
               strokeDasharray="4,4"
             />
             

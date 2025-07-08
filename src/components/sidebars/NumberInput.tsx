@@ -1,5 +1,7 @@
 import React from "react";
 import { ChangeEvent, ReactNode, useEffect, useState } from "react";
+import { clampNumber, parseNumericInput } from "@/utils";
+import { useNumericInput } from "@/hooks/common";
 
 const NumberInput = ({
   value,
@@ -16,31 +18,12 @@ const NumberInput = ({
   icon: ReactNode;
   classNames?: string;
 }) => {
-  const [inputValue, setInputValue] = useState(value.toString());
-
-  useEffect(() => {
-    setInputValue(value.toString());
-  }, [value]);
-
-  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setInputValue(e.target.value);
-  };
-
-  const handleCommit = () => {
-    const newValue = parseFloat(inputValue);
-
-    if (isNaN(newValue)) {
-      setInputValue(value.toString());
-      return;
-    }
-
-    const clampedValue = Math.min(
-      max ?? newValue,
-      Math.max(min ?? newValue, newValue),
-    );
-    setInputValue(clampedValue.toString());
-    onChange(clampedValue);
-  };
+  const { inputValue, isValid, handleChange, handleCommit } = useNumericInput(
+    value,
+    onChange,
+    min,
+    max
+  );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
@@ -54,7 +37,7 @@ const NumberInput = ({
       <input
         type="number"
         value={inputValue}
-        onChange={handleChange}
+        onChange={(e) => handleChange(e.target.value)}
         onBlur={handleCommit}
         onKeyDown={handleKeyDown}
         min={min}

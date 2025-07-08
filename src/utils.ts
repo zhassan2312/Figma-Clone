@@ -214,21 +214,66 @@ export function resizeBoundsWithRotation(
   // Convert rotation from degrees to radians
   const angleRad = (rotation * Math.PI) / 180;
   
-  // Calculate the center of the bounds
+  // Calculate the center of the current bounds
   const center = {
     x: bounds.x + bounds.width / 2,
     y: bounds.y + bounds.height / 2
   };
   
-  // Transform the mouse point to the unrotated coordinate system
-  const unrotatedPoint = rotatePoint(point, center, -angleRad);
+  // Get the opposite corner in local space (relative to bounds)
+  const localOppositeCorner = getOppositeCorner(bounds, corner);
   
-  // Perform the resize calculation in the unrotated space
-  const newBounds = resizeBounds(bounds, corner, unrotatedPoint);
+  // Transform the opposite corner to world space
+  const worldOppositeCorner = rotatePoint(localOppositeCorner, center, angleRad);
   
-  // The resized bounds are already in the correct coordinate system
-  // because we only transform the mouse point, not the bounds themselves
-  return newBounds;
+  // Transform the mouse point to local space (as if the object wasn't rotated)
+  const localMousePoint = rotatePoint(point, center, -angleRad);
+  
+  // Transform the world opposite corner to local space
+  const localOppositeCornerTransformed = rotatePoint(worldOppositeCorner, center, -angleRad);
+  
+  // Calculate new bounds in local space
+  const localBounds = {
+    x: Math.min(localMousePoint.x, localOppositeCornerTransformed.x),
+    y: Math.min(localMousePoint.y, localOppositeCornerTransformed.y),
+    width: Math.abs(localMousePoint.x - localOppositeCornerTransformed.x),
+    height: Math.abs(localMousePoint.y - localOppositeCornerTransformed.y)
+  };
+  
+  return localBounds;
+}
+
+// Helper function to get the opposite corner point
+function getOppositeCorner(bounds: XYWH, corner: Side): Point {
+  let x = bounds.x;
+  let y = bounds.y;
+  
+  // For corners that include Left, the opposite is Right
+  if (corner & Side.Left) {
+    x = bounds.x + bounds.width;
+  }
+  // For corners that include Right, the opposite is Left
+  if (corner & Side.Right) {
+    x = bounds.x;
+  }
+  // For corners that include Top, the opposite is Bottom
+  if (corner & Side.Top) {
+    y = bounds.y + bounds.height;
+  }
+  // For corners that include Bottom, the opposite is Top
+  if (corner & Side.Bottom) {
+    y = bounds.y;
+  }
+  
+  // Handle pure side cases (not corners)
+  if (corner === Side.Left || corner === Side.Right) {
+    y = bounds.y + bounds.height / 2;
+  }
+  if (corner === Side.Top || corner === Side.Bottom) {
+    x = bounds.x + bounds.width / 2;
+  }
+  
+  return { x, y };
 }
 
 export function penPointsToPathPayer(
@@ -398,4 +443,173 @@ export function getLayerStrokes(layer: any): Stroke[] {
   
   // Return empty array if no strokes
   return [];
+}
+
+// Common utility functions for canvas components
+
+// Calculate center point of a layer
+export function getLayerCenter(layer: { x: number; y: number; width: number; height: number }): Point {
+  return {
+    x: layer.x + layer.width / 2,
+    y: layer.y + layer.height / 2
+  };
+}
+
+// Generate SVG rotation transform string
+export function getRotationTransform(rotation: number, centerX: number, centerY: number): string {
+  return rotation ? `rotate(${rotation} ${centerX} ${centerY})` : '';
+}
+
+// Generate SVG rotation transform string for a layer
+export function getLayerRotationTransform(layer: { x: number; y: number; width: number; height: number; rotation?: number }): string {
+  if (!layer.rotation) return '';
+  const center = getLayerCenter(layer);
+  return getRotationTransform(layer.rotation, center.x, center.y);
+}
+
+// Get common layer styles (fill and stroke)
+export function getLayerStyles(layer: any): { fillStyle: string; strokeStyle: { stroke: string; strokeWidth: number; strokeDasharray?: string } } {
+  const fillStyle = calculateFillStyle(getLayerFills(layer));
+  const strokeStyle = calculateStrokeStyle(getLayerStrokes(layer));
+  return { fillStyle, strokeStyle };
+}
+
+// Clamp a number between min and max values
+export function clampNumber(value: number, min?: number, max?: number): number {
+  if (min !== undefined && value < min) return min;
+  if (max !== undefined && value > max) return max;
+  return value;
+}
+
+// Parse and validate a numeric input string
+export function parseNumericInput(input: string, fallback: number, min?: number, max?: number): number {
+  const parsed = parseFloat(input);
+  if (isNaN(parsed)) return fallback;
+  return clampNumber(parsed, min, max);
+}
+
+// Generate CSS transform string for positioning
+export function getCSSTransform(x: number, y: number, additionalTransforms?: string): string {
+  const baseTransform = `translate(${x}px, ${y}px)`;
+  return additionalTransforms ? `${baseTransform} ${additionalTransforms}` : baseTransform;
+}
+
+// Get layer bounds with rotation consideration
+export function getLayerBounds(layer: any): XYWH {
+  if (layer.type === 'Line' || layer.type === 'Arrow') {
+    return {
+      x: Math.min(layer.x, layer.x2),
+      y: Math.min(layer.y, layer.y2),
+      width: Math.abs(layer.x2 - layer.x),
+      height: Math.abs(layer.y2 - layer.y)
+    };
+  }
+  
+  return {
+    x: layer.x,
+    y: layer.y,
+    width: layer.width || 0,
+    height: layer.height || 0
+  };
+}
+
+// Check if a point is inside a layer's bounds
+export function isPointInLayer(point: Point, layer: any): boolean {
+  const bounds = getLayerBounds(layer);
+  return (
+    point.x >= bounds.x &&
+    point.x <= bounds.x + bounds.width &&
+    point.y >= bounds.y &&
+    point.y <= bounds.y + bounds.height
+  );
+}
+
+// Calculate distance between two points
+export function getDistance(p1: Point, p2: Point): number {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// Calculate angle between two points in degrees
+export function getAngle(p1: Point, p2: Point): number {
+  const dx = p2.x - p1.x;
+  const dy = p2.y - p1.y;
+  return (Math.atan2(dy, dx) * 180) / Math.PI;
+}
+
+// Normalize angle to 0-360 range
+export function normalizeAngle(angle: number): number {
+  return ((angle % 360) + 360) % 360;
+}
+
+// Round number to specified decimal places
+export function roundToDecimal(num: number, decimals: number = 0): number {
+  const factor = Math.pow(10, decimals);
+  return Math.round(num * factor) / factor;
+}
+
+// Generate unique ID
+export function generateId(): string {
+  return crypto.randomUUID();
+}
+
+// Check if a value is numeric
+export function isNumeric(value: any): boolean {
+  return !isNaN(parseFloat(value)) && isFinite(value);
+}
+
+// Format number for display (remove trailing zeros)
+export function formatNumber(num: number): string {
+  return parseFloat(num.toFixed(2)).toString();
+}
+
+// Get contrasting color (black or white) for a given color
+export function getContrastingColor(color: Color): Color {
+  const luminance = (0.299 * color.r + 0.587 * color.g + 0.114 * color.b) / 255;
+  return luminance > 0.5 ? { r: 0, g: 0, b: 0 } : { r: 255, g: 255, b: 255 };
+}
+
+// Lerp between two numbers
+export function lerp(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+// Lerp between two points
+export function lerpPoint(p1: Point, p2: Point, t: number): Point {
+  return {
+    x: lerp(p1.x, p2.x, t),
+    y: lerp(p1.y, p2.y, t)
+  };
+}
+
+// Lerp between two colors
+export function lerpColor(c1: Color, c2: Color, t: number): Color {
+  return {
+    r: Math.round(lerp(c1.r, c2.r, t)),
+    g: Math.round(lerp(c1.g, c2.g, t)),
+    b: Math.round(lerp(c1.b, c2.b, t))
+  };
+}
+
+// Check if two rectangles intersect
+export function rectanglesIntersect(rect1: XYWH, rect2: XYWH): boolean {
+  return !(
+    rect1.x + rect1.width < rect2.x ||
+    rect2.x + rect2.width < rect1.x ||
+    rect1.y + rect1.height < rect2.y ||
+    rect2.y + rect2.height < rect1.y
+  );
+}
+
+// Get the intersection of two rectangles
+export function getIntersection(rect1: XYWH, rect2: XYWH): XYWH | null {
+  if (!rectanglesIntersect(rect1, rect2)) return null;
+  
+  const x = Math.max(rect1.x, rect2.x);
+  const y = Math.max(rect1.y, rect2.y);
+  const width = Math.min(rect1.x + rect1.width, rect2.x + rect2.width) - x;
+  const height = Math.min(rect1.y + rect1.height, rect2.y + rect2.height) - y;
+  
+  return { x, y, width, height };
 }
