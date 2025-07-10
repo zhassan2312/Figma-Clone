@@ -548,9 +548,9 @@ export default function useKeyboardShortcuts({
         if (isCtrlOrCmd) {
           history.redo();
         } else if (isShift) {
-          // Shift+R for rotation
+          // Shift+R for toggling ruler
           e.preventDefault();
-          rotateSelectedLayers(45);
+          // This will be handled by the useRuler hook
         } else if (setCanvasState) {
           // R key for rectangle tool
           setCanvasState({
